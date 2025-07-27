@@ -3,7 +3,8 @@ import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import Login from './pages/authentications/login';
 import HomePage  from './pages/home';
 import Signup from './pages/authentications/signup';
-import DashboardLayout from './pages/farmer/dashboard';
+import FarmerDashboardLayout from './pages/farmer/dashboard';
+import Recommendation from './pages/farmer/recommendation';
 
 
 function App() {
@@ -17,9 +18,8 @@ function App() {
                     <Route path="/signup" element={<Signup />} />
 
                     
-                    <Route path="/farmer-dashboard" element={<DashboardLayout />}>
-                    
-
+                    <Route path="/farmer-dashboard" element={<FarmerDashboardLayout />}>
+                        <Route path="recommendation" element={<Recommendation />} />
                     </Route>
               </Routes>
               </div>

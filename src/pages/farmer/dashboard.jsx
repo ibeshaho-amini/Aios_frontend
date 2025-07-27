@@ -63,7 +63,7 @@ const FarmerDashboardLayout = () => {
   }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-gradient-to-br from-blue-400 via-blue-300 to-orange-200">
+    <div className="flex h-screen bg-gradient-to-br from-blue-400 via-blue-300 to-orange-200">
       {/* Sidebar */}
       <div
         className={`fixed inset-y-0 left-0 z-50 w-[280px] bg-gradient-to-b from-green-800 to-green-900 shadow-xl transition-transform duration-300 transform ${
@@ -105,7 +105,7 @@ const FarmerDashboardLayout = () => {
           <div className="flex-1 px-4 overflow-y-auto">
             <nav className="space-y-1">
               <SidebarItem name="Dashboard" icon={<FiHome />} path="/farmer/dashboard" />
-              <SidebarItem name="Soil & Water" icon={<FiDroplet />} path="/farmer/soil-water" />
+              <SidebarItem name="Soil & Water" icon={<FiDroplet />} path="/farmer-dashboard/recommendation" />
               <SidebarItem name="Weather" icon={<FiCloud />} path="/farmer/weather" />
               <SidebarItem name="Task Management" icon={<FiClipboard />} path="/farmer/tasks" />
               <SidebarItem name="Labor Management" icon={<FiUsers />} path="/farmer/labor" />
@@ -148,7 +148,7 @@ const FarmerDashboardLayout = () => {
         </header>
 
         {/* Page Content with proper spacing */}
-        <main className="flex-1 p-8 bg-gradient-to-br from-blue-50 via-white to-orange-50 min-h-screen">
+        <main className="flex-1 overflow-y-auto p-8 bg-gradient-to-br from-blue-50 via-white to-orange-50">
           <div className="max-w-7xl mx-auto">
             <Outlet />
           </div>

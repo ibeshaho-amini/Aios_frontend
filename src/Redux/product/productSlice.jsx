@@ -6,7 +6,7 @@ export const createProduct = createAsyncThunk(
   'product/create',
   async (productData, { rejectWithValue }) => {
     try {
-      const response = await axios.post('/product/', productData)
+      const response = await axios.post('/products/create/', productData)
       return response.data
     } catch (error) {
       return rejectWithValue(error.response?.data || { detail: 'Failed to create product' })
@@ -19,7 +19,7 @@ export const listProducts = createAsyncThunk(
   'product/list',
   async (_, { rejectWithValue }) => {
     try {
-      const response = await axios.get('/product/')
+      const response = await axios.get('/products/')
       return response.data
     } catch (error) {
       return rejectWithValue(error.response?.data || { detail: 'Failed to fetch products' })
@@ -32,7 +32,7 @@ export const getProduct = createAsyncThunk(
   'product/get',
   async (productId, { rejectWithValue }) => {
     try {
-      const response = await axios.get(`/product/${productId}/`)
+      const response = await axios.get(`/products/${productId}/`)
       return response.data
     } catch (error) {
       return rejectWithValue(error.response?.data || { detail: 'Failed to fetch product' })
@@ -45,7 +45,7 @@ export const listProductsBySupplier = createAsyncThunk(
   'product/listBySupplier',
   async (supplierId, { rejectWithValue }) => {
     try {
-      const response = await axios.get(`/product/supplier/${supplierId}/`)
+      const response = await axios.get(`/products/supplier/${supplierId}/`)
       return response.data
     } catch (error) {
       return rejectWithValue(error.response?.data || { detail: 'Failed to fetch supplier products' })

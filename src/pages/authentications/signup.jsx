@@ -385,8 +385,8 @@ export default function SignupPage() {
                     disabled={isLoading}
                   >
                     <option value="">Select your role</option>
-                    <option value="Farmer">🌾 Farmer - Optimize crop production</option>
-                    <option value="Supplier">📦 Supplier - Provide agricultural inputs</option>
+                    <option value="farmer">🌾 Farmer - Optimize crop production</option>
+                    <option value="supplier">📦 Supplier - Provide agricultural inputs</option>
                   </select>
                 </div>
                 {renderError("role") && (

@@ -73,31 +73,7 @@ export const getUserById = createAsyncThunk(
   }
 );
 
-// ✅ Send OTP
-// export const sendOtp = createAsyncThunk(
-//   'user/sendOtp',
-//   async ({ email }, { rejectWithValue }) => {
-//     try {
-//       const response = await axios.post(`${API_BASE_URL}/api/send-otp/`, { email });
-//       return response.data;
-//     } catch (error) {
-//       return rejectWithValue(error.response?.data || { detail: 'Failed to send OTP' });
-//     }
-//   }
-// );
 
-// ✅ Verify OTP
-// export const verifyOtp = createAsyncThunk(
-//   'user/verifyOtp',
-//   async (otpData, { rejectWithValue }) => {
-//     try {
-//       const response = await axios.post(`${API_BASE_URL}/api/verify-otp/`, otpData);
-//       return response.data;
-//     } catch (error) {
-//       return rejectWithValue(error.response?.data || { detail: 'OTP verification failed' });
-//     }
-//   }
-// );
 
 // ✅ Logout
 export const logoutUser = createAsyncThunk('auth/logout', async (_, thunkAPI) => {
@@ -188,6 +164,16 @@ const authSlice = createSlice({
       .addCase(login.pending, (state) => {
         state.isLoading = true;
         state.error = null;
+        state.isAuthenticated = false;
+        state.userInfo = null;
+        state.accessToken = null;
+        state.refreshToken = null;
+        state.role = null;
+        state.userId = null;
+        localStorage.removeItem('userInfo');
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('refreshToken');
+        localStorage.removeItem('user_id');
       })
       .addCase(login.fulfilled, (state, action) => {
         state.isLoading = false;
@@ -203,10 +189,21 @@ const authSlice = createSlice({
         localStorage.setItem('accessToken', action.payload.access);
         localStorage.setItem('refreshToken', action.payload.refresh);
         localStorage.setItem('user_id', action.payload.user.id);
+        
+        console.log("Redux login.fulfilled: role =", action.payload.user.role, "user =", action.payload.user);
       })
       .addCase(login.rejected, (state, action) => {
         state.isLoading = false;
         state.isAuthenticated = false;
+        state.userInfo = null;
+        state.accessToken = null;
+        state.refreshToken = null;
+        state.role = null;
+        state.userId = null;
+        localStorage.removeItem('userInfo');
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('refreshToken');
+        localStorage.removeItem('user_id');
         state.error = action.payload;
       })
 

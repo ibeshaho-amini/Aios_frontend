@@ -1,3 +1,5 @@
+
+
 "use client"
 
 import { useState, useEffect } from "react"
@@ -6,6 +8,7 @@ import {
   createFullRecommendation,
   createCropOnlyRecommendation,
   clearRecommendationState,
+  fetchFertilizerByCrop,
 } from "../../Redux/Recommendation/cropRecommendation"
 import {
   FiDroplet,
@@ -19,11 +22,118 @@ import {
   FiRefreshCw,
   FiSun,
   FiCloudRain,
+  FiSearch,
+  FiCalendar,
+  FiInfo,
 } from "react-icons/fi"
+
+const FertilizerInfoCard = ({ data, crop }) => {
+  if (!data || Object.keys(data).length === 0) {
+    return null
+  }
+
+  return (
+    <div className="bg-white/90 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-white/20">
+      <h3 className="text-xl font-bold text-green-800 mb-6 flex items-center gap-2">
+        <FiTrendingUp className="text-blue-600" />
+        Fertilizer Plan for <span className="capitalize text-green-600">{crop}</span>
+      </h3>
+
+      {/* NPK Recommendation */}
+      {data.npk_kg_per_ha && (
+        <div className="mb-6">
+          <div className="flex items-center gap-2 mb-3">
+            <FiBarChart2 className="text-green-600" />
+            <span className="font-semibold text-gray-700">Recommended NPK per Hectare:</span>
+          </div>
+          <div className="grid grid-cols-3 gap-4">
+            <div className="bg-green-50 rounded-lg p-4 text-center">
+              <div className="text-2xl font-bold text-green-700">{data.npk_kg_per_ha.N}</div>
+              <div className="text-sm text-green-600">Nitrogen (N) kg</div>
+            </div>
+            <div className="bg-blue-50 rounded-lg p-4 text-center">
+              <div className="text-2xl font-bold text-blue-700">{data.npk_kg_per_ha.P}</div>
+              <div className="text-sm text-blue-600">Phosphorus (P) kg</div>
+            </div>
+            <div className="bg-purple-50 rounded-lg p-4 text-center">
+              <div className="text-2xl font-bold text-purple-700">{data.npk_kg_per_ha.K}</div>
+              <div className="text-sm text-purple-600">Potassium (K) kg</div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Fertilizer Types */}
+      {data.fertilizers && data.fertilizers.length > 0 && (
+        <div className="mb-6">
+          <div className="flex items-center gap-2 mb-3">
+            <FiDroplet className="text-blue-600" />
+            <span className="font-semibold text-gray-700">Recommended Fertilizers:</span>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {data.fertilizers.map((fertilizer, index) => (
+              <span
+                key={index}
+                className="bg-blue-100 text-blue-800 px-4 py-2 rounded-full text-sm font-medium border border-blue-200"
+              >
+                {fertilizer}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Application Schedule */}
+      {data.application_schedule && data.application_schedule.length > 0 && (
+        <div className="mb-6">
+          <div className="flex items-center gap-2 mb-3">
+            <FiCalendar className="text-orange-600" />
+            <span className="font-semibold text-gray-700">Application Schedule:</span>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full border border-gray-200 rounded-lg overflow-hidden">
+              <thead>
+                <tr className="bg-gray-50">
+                  <th className="py-3 px-4 text-left text-sm font-medium text-gray-700 border-b">Stage</th>
+                  <th className="py-3 px-4 text-left text-sm font-medium text-gray-700 border-b">Method</th>
+                  <th className="py-3 px-4 text-left text-sm font-medium text-gray-700 border-b">Dose</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.application_schedule.map((schedule, index) => (
+                  <tr key={index} className={index % 2 === 0 ? "bg-white" : "bg-gray-50"}>
+                    <td className="py-3 px-4 text-sm text-gray-800 border-b">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                        {schedule.stage}
+                      </div>
+                    </td>
+                    <td className="py-3 px-4 text-sm text-gray-600 border-b">{schedule.method}</td>
+                    <td className="py-3 px-4 text-sm font-medium text-gray-800 border-b">{schedule.dose}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Source */}
+      {data.source && (
+        <div className="mt-4 pt-4 border-t border-gray-100">
+          <div className="flex items-center gap-2 text-sm text-gray-500">
+            <FiInfo className="w-4 h-4" />
+            <span>Source: {data.source}</span>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
 
 const PredictionForm = () => {
   const dispatch = useDispatch()
-  const { isLoading, fullRecommendation, cropOnlyRecommendation, error, success } = useSelector(
+  const { isLoading, fullRecommendation, cropOnlyRecommendation, error, success, fertilizerData } = useSelector(
     (state) => state.recommendation,
   )
 
@@ -42,21 +152,33 @@ const PredictionForm = () => {
   const [activeTab, setActiveTab] = useState("form")
   const [formErrors, setFormErrors] = useState({})
 
+  // New state for fertilizer info tab
+  const [fertilizerCrop, setFertilizerCrop] = useState("")
+  const [fertilizerError, setFertilizerError] = useState(null)
+  const [fertilizerLoading, setFertilizerLoading] = useState(false)
+
   // Debug logging
   useEffect(() => {
-    console.log("Redux state updated:", {
-      isLoading,
-      fullRecommendation,
-      cropOnlyRecommendation,
-      error,
-      success,
-    })
-  }, [isLoading, fullRecommendation, cropOnlyRecommendation, error, success])
+    console.log("Fertilizer data updated:", fertilizerData)
+  }, [fertilizerData])
+
+  // Fetch fertilizer when crop is available from recommendations
+  useEffect(() => {
+    const crop =
+      fullRecommendation?.crop_predicted ||
+      fullRecommendation?.recommended_crop ||
+      cropOnlyRecommendation?.crop_predicted ||
+      cropOnlyRecommendation?.recommended_crop
+
+    if (crop) {
+      console.log("Auto-fetching fertilizer data for crop:", crop)
+      dispatch(fetchFertilizerByCrop(crop))
+    }
+  }, [fullRecommendation, cropOnlyRecommendation, dispatch])
 
   // Auto-switch to results tab when we get data or errors
   useEffect(() => {
     if (fullRecommendation || cropOnlyRecommendation || error) {
-      console.log("Switching to results tab")
       setActiveTab("results")
     }
   }, [fullRecommendation, cropOnlyRecommendation, error])
@@ -64,8 +186,6 @@ const PredictionForm = () => {
   const handleChange = (e) => {
     const { name, value } = e.target
     setFormData((prev) => ({ ...prev, [name]: value }))
-
-    // Clear error for this field when user starts typing
     if (formErrors[name]) {
       setFormErrors((prev) => ({ ...prev, [name]: "" }))
     }
@@ -92,7 +212,6 @@ const PredictionForm = () => {
       }
     })
 
-    // Validate numeric ranges
     if (formData.ph_value && (Number.parseFloat(formData.ph_value) < 0 || Number.parseFloat(formData.ph_value) > 14)) {
       errors.ph_value = "pH value must be between 0 and 14"
     }
@@ -115,16 +234,9 @@ const PredictionForm = () => {
 
   const handleFullSubmit = async (e) => {
     e.preventDefault()
-    console.log("Full recommendation submitted with data:", formData)
-
-    if (!validateForm()) {
-      console.log("Form validation failed:", formErrors)
-      return
-    }
-
+    if (!validateForm()) return
     try {
-      const result = await dispatch(createFullRecommendation(formData))
-      console.log("Full recommendation result:", result)
+      await dispatch(createFullRecommendation(formData))
     } catch (error) {
       console.error("Full recommendation error:", error)
     }
@@ -132,25 +244,42 @@ const PredictionForm = () => {
 
   const handleCropOnlySubmit = async (e) => {
     e.preventDefault()
-    console.log("Crop-only recommendation submitted with data:", formData)
-
-    if (!validateForm()) {
-      console.log("Form validation failed:", formErrors)
-      return
-    }
-
+    if (!validateForm()) return
     try {
-      const result = await dispatch(createCropOnlyRecommendation(formData))
-      console.log("Crop-only recommendation result:", result)
+      await dispatch(createCropOnlyRecommendation(formData))
     } catch (error) {
       console.error("Crop-only recommendation error:", error)
     }
   }
 
   const clearResults = () => {
-    console.log("Clearing results")
     dispatch(clearRecommendationState())
     setActiveTab("form")
+    setFertilizerCrop("")
+    setFertilizerError(null)
+  }
+
+  // Handle fertilizer info fetch for any crop
+  const handleFertilizerFetch = async (e) => {
+    e.preventDefault()
+    setFertilizerError(null)
+
+    if (!fertilizerCrop.trim()) {
+      setFertilizerError("Please enter a crop name.")
+      return
+    }
+
+    setFertilizerLoading(true)
+    console.log("Fetching fertilizer data for:", fertilizerCrop.trim())
+
+    try {
+      await dispatch(fetchFertilizerByCrop(fertilizerCrop.trim()))
+    } catch (err) {
+      console.error("Fertilizer fetch error:", err)
+      setFertilizerError("Could not fetch fertilizer info.")
+    } finally {
+      setFertilizerLoading(false)
+    }
   }
 
   const soilTypes = ["Sandy", "Clay", "Loamy", "Silt", "Peaty", "Chalky"]
@@ -210,7 +339,6 @@ const PredictionForm = () => {
         <h3 className="text-lg font-semibold text-gray-800">{title}</h3>
       </div>
 
-      {/* Handle both API response formats */}
       {(data.crop_predicted || data.recommended_crop) && (
         <div className="mb-4">
           <div className="flex items-center gap-2 mb-2">
@@ -223,19 +351,7 @@ const PredictionForm = () => {
         </div>
       )}
 
-      {(data.fertilizer_predicted || data.fertilizer_recommendation) && (
-        <div className="mb-4">
-          <div className="flex items-center gap-2 mb-2">
-            <FiTrendingUp className="text-blue-600" />
-            <span className="font-medium text-gray-700">Fertilizer Recommendation</span>
-          </div>
-          <div className="bg-blue-50 rounded-lg p-3">
-            <span className="text-lg font-semibold text-blue-700">
-              {data.fertilizer_predicted || data.fertilizer_recommendation}
-            </span>
-          </div>
-        </div>
-      )}
+         
 
       {data.disease_prediction && (
         <div className="mb-4">
@@ -261,7 +377,6 @@ const PredictionForm = () => {
         </div>
       )}
 
-      {/* API Response Details */}
       <div className="mt-4 pt-4 border-t border-gray-100">
         <div className="grid grid-cols-2 gap-4 text-sm">
           {data.status && (
@@ -291,7 +406,6 @@ const PredictionForm = () => {
         </div>
       </div>
 
-      {/* Input Parameters Summary */}
       <div className="mt-4 pt-4 border-t border-gray-100">
         <h4 className="text-sm font-medium text-gray-700 mb-2">Input Parameters:</h4>
         <div className="grid grid-cols-2 gap-2 text-xs text-gray-600">
@@ -389,9 +503,20 @@ const PredictionForm = () => {
           >
             Recommendations
           </button>
+          <button
+            onClick={() => setActiveTab("fertilizer")}
+            className={`flex-1 px-6 py-4 text-sm font-medium transition-colors ${
+              activeTab === "fertilizer"
+                ? "text-blue-600 border-b-2 border-blue-600 bg-blue-50"
+                : "text-gray-500 hover:text-gray-700"
+            }`}
+          >
+            Fertilizer Guide
+          </button>
         </div>
 
         <div className="p-6">
+          {/* Form Tab */}
           {activeTab === "form" && (
             <form className="space-y-6" onSubmit={(e) => e.preventDefault()}>
               {/* Soil Parameters */}
@@ -514,6 +639,7 @@ const PredictionForm = () => {
             </form>
           )}
 
+          {/* Results Tab */}
           {activeTab === "results" && (
             <div className="space-y-6">
               {/* Status Messages */}
@@ -561,6 +687,22 @@ const PredictionForm = () => {
                 )}
               </div>
 
+              {/* Auto-fetched Fertilizer Recommendation */}
+              {/* {fertilizerData && Object.keys(fertilizerData).length > 0 && (
+                <div className="mt-6">
+                  <FertilizerInfoCard
+                    data={fertilizerData}
+                    crop={
+                      fullRecommendation?.crop_predicted ||
+                      fullRecommendation?.recommended_crop ||
+                      cropOnlyRecommendation?.crop_predicted ||
+                      cropOnlyRecommendation?.recommended_crop ||
+                      "Selected Crop"
+                    }
+                  />
+                </div>
+              )} */}
+
               {/* Action Buttons */}
               {(fullRecommendation || cropOnlyRecommendation) && (
                 <div className="flex justify-center pt-6 border-t border-gray-100">
@@ -592,17 +734,81 @@ const PredictionForm = () => {
               )}
             </div>
           )}
+
+          {/* Fertilizer Info Tab */}
+          {activeTab === "fertilizer" && (
+            <div className="space-y-6">
+              <div className="bg-blue-50 rounded-lg p-4">
+                <h3 className="font-semibold text-blue-800 mb-2">Get Fertilizer Information</h3>
+                <p className="text-sm text-blue-600 mb-4">
+                  Enter any crop name to get detailed fertilizer recommendations, NPK requirements, and application
+                  schedules.
+                </p>
+              </div>
+
+              <form className="flex flex-col sm:flex-row gap-4 items-end" onSubmit={handleFertilizerFetch}>
+                <div className="flex-1">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Crop Name</label>
+                  <input
+                    type="text"
+                    value={fertilizerCrop}
+                    onChange={(e) => setFertilizerCrop(e.target.value)}
+                    placeholder="Enter crop name (e.g., Rice, Wheat, Corn)"
+                    className="w-full px-4 py-3 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  disabled={fertilizerLoading}
+                  className="bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold shadow-lg hover:bg-blue-700 transition-all duration-200 disabled:opacity-50 flex items-center gap-2"
+                >
+                  {fertilizerLoading ? <FiRefreshCw className="animate-spin" /> : <FiSearch />}
+                  {fertilizerLoading ? "Searching..." : "Get Fertilizer Info"}
+                </button>
+              </form>
+
+              {fertilizerError && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-3">
+                  <FiAlertCircle className="text-red-600" />
+                  <span className="text-red-700">{fertilizerError}</span>
+                </div>
+              )}
+
+              {/* Loading state */}
+              {fertilizerLoading && (
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 flex items-center gap-3">
+                  <FiRefreshCw className="text-yellow-600 animate-spin" />
+                  <span className="text-yellow-700">Fetching fertilizer information...</span>
+                </div>
+              )}
+
+              {/* Show the fertilizer info card */}
+              {fertilizerData && Object.keys(fertilizerData).length > 0 && !fertilizerLoading && (
+                <FertilizerInfoCard data={fertilizerData} crop={fertilizerCrop} />
+              )}
+
+              {/* Empty state for fertilizer tab */}
+              {!fertilizerData && !fertilizerLoading && !fertilizerError && (
+                <div className="text-center py-12">
+                  <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <FiTrendingUp className="text-gray-400 text-3xl" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-600 mb-2">No fertilizer data yet</h3>
+                  <p className="text-gray-500">Enter a crop name above to get detailed fertilizer recommendations</p>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
+
       {/* Debug Section - Remove in production */}
-      {process.env.NODE_ENV === "development" && (fullRecommendation || cropOnlyRecommendation) && (
-        <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-          <h4 className="text-sm font-medium text-gray-700 mb-2">Debug - API Response:</h4>
-          <pre className="text-xs text-gray-600 overflow-auto max-h-40">
-            {JSON.stringify(fullRecommendation || cropOnlyRecommendation, null, 2)}
-          </pre>
-        </div>
-      )}
+      {/* {process.env.NODE_ENV === "development" && fertilizerData && (
+        // <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+        //   <h4 className="text-sm font-medium text-gray-700 mb-2">Debug - Fertilizer API Response:</h4>
+        //   <pre className="text-xs text-gray-600 overflow-auto max-h-40">{JSON.stringify(fertilizerData, null, 2)}</pre>
+        // </div>
+      )} */}
     </div>
   )
 }

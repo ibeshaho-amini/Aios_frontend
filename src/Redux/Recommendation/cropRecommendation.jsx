@@ -25,11 +25,23 @@ export const createCropOnlyRecommendation = createAsyncThunk(
   }
 );
 
+export const fetchFertilizerByCrop = createAsyncThunk(
+    "fertilizer/fetchByCrop",
+    async (cropName, { rejectWithValue }) => {
+      try {
+        const response = await axios.get(`/fertilizer/${cropName}/`);
+        return response.data;
+      } catch (error) {
+        return rejectWithValue(error.response?.data || { detail: "Failed to load data" });
+      }
+    }
+  );
 // Initial state
 const initialState = {
   isLoading: false,
   fullRecommendation: null,
   cropOnlyRecommendation: null,
+  fertilizerData: null,
   error: null,
   success: null,
 };
@@ -78,7 +90,21 @@ const recommendationSlice = createSlice({
       .addCase(createCropOnlyRecommendation.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload;
-      });
+      })
+
+    
+          .addCase(fetchFertilizerByCrop.pending, (state) => {
+            state.isLoading = true;
+            state.error = null;
+          })
+          .addCase(fetchFertilizerByCrop.fulfilled, (state, action) => {
+            state.isLoading = false;
+            state.fertilizerData = action.payload; 
+          })
+          .addCase(fetchFertilizerByCrop.rejected, (state, action) => {
+            state.isLoading = false;
+            state.error = action.payload.detail || "Could not fetch fertilizer data";
+          });
   },
 });
 

@@ -5,6 +5,8 @@ import HomePage  from './pages/home';
 import Signup from './pages/authentications/signup';
 import FarmerDashboardLayout from './pages/farmer/dashboard';
 import Recommendation from './pages/farmer/recommendation';
+import SupplierDashboardLayout from './pages/supplier/supplier_dashboard';
+import Profile from './pages/supplier/supplier_profile'
 
 
 function App() {
@@ -20,6 +22,12 @@ function App() {
                     
                     <Route path="/farmer-dashboard" element={<FarmerDashboardLayout />}>
                         <Route path="recommendation" element={<Recommendation />} />
+                    </Route>
+
+                {/* suplier routes */}
+
+                <Route path="/supplier-dashboard" element={<SupplierDashboardLayout />}>
+                <Route path="profile" element={<Profile />} />
                     </Route>
               </Routes>
               </div>

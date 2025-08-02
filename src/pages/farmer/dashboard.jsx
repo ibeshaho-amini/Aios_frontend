@@ -79,7 +79,7 @@ const FarmerDashboardLayout = () => {
                   <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z" />
                 </svg>
               </div>
-              <h1 className="text-xl font-semibold text-white">Farmering</h1>
+              <h1 className="text-xl font-semibold text-white">AIOS</h1>
               <div className="w-4 h-4 border border-white/30 rounded flex items-center justify-center ml-auto">
                 <svg className="w-3 h-3 text-white/70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
@@ -107,15 +107,15 @@ const FarmerDashboardLayout = () => {
               <SidebarItem name="Dashboard" icon={<FiHome />} path="/farmer/dashboard" />
               <SidebarItem name="Farm Recommendation" icon={<FiDroplet />} path="/farmer-dashboard/recommendation  " />
               <SidebarItem name="Weather" icon={<FiCloud />} path="/farmer/weather" />
-              <SidebarItem name="Task Management" icon={<FiClipboard />} path="/farmer/tasks" />
-              <SidebarItem name="Labor Management" icon={<FiUsers />} path="/farmer/labor" />
+              <SidebarItem name="Order" icon={<FiClipboard />} path="/farmer/tasks" />
+              <SidebarItem name="Profile" icon={<FiUsers />} path="/farmer/labor" />
               <SidebarItem name="Report & Analytics" icon={<FiBarChart2 />} path="/farmer/reports" />
             </nav>
 
             <div className="mt-8 pt-6 border-t border-white/20">
               <nav className="space-y-1">
                 <SidebarItem name="Setting" icon={<FiSettings />} path="/farmer/settings" />
-                <SidebarItem name="Help & Support" icon={<FiHelpCircle />} path="/farmer/support" />
+                <SidebarItem name="Feedback" icon={<FiHelpCircle />} path="/farmer/support" />
               </nav>
             </div>
           </div>

@@ -1,7 +1,6 @@
-
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useRef } from "react"
 import { useDispatch, useSelector } from "react-redux"
 import { createProduct, listProductsBySupplier, clearProductState } from "../../Redux/product/productSlice"
 import {
@@ -9,30 +8,148 @@ import {
   FiPlus,
   FiCheckCircle,
   FiAlertCircle,
-  FiEdit3,
-  FiTrash2,
-  FiEye,
   FiX,
   FiPackage,
   FiDollarSign,
   FiLayers,
   FiRefreshCw,
+  FiImage,
+  FiUpload,
 } from "react-icons/fi"
 
+// Adjust this path to where you saved the table component
+import SupplierProductsTable from "../supplier/components/productForm"
+
+// ---------- Reusable Inputs (outside of ProductPage) ----------
+const InputField = ({ label, name, type = "text", placeholder, options = null, value, onChange, error, ...props }) => (
+  <div className="space-y-2">
+    <label htmlFor={name} className="block text-sm font-medium text-gray-700">
+      {label}
+    </label>
+
+    {options ? (
+      <select
+        id={name}
+        name={name}
+        value={value}
+        onChange={onChange}
+        className={`w-full px-4 py-3 bg-white border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all ${
+          error ? "border-red-300" : "border-gray-200"
+        }`}
+        {...props}
+      >
+        <option value="">{placeholder || "Select"}</option>
+        {options.map((opt) => (
+          <option key={opt} value={opt}>
+            {opt}
+          </option>
+        ))}
+      </select>
+    ) : (
+      <input
+        id={name}
+        type={type}
+        name={name}
+        value={value}
+        onChange={onChange}
+        placeholder={placeholder}
+        className={`w-full px-4 py-3 bg-white border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all ${
+          error ? "border-red-300" : "border-gray-200"
+        }`}
+        {...props}
+      />
+    )}
+
+    {error && (
+      <p className="text-sm text-red-600 flex items-center gap-1">
+        <FiAlertCircle className="w-4 h-4" />
+        {error}
+      </p>
+    )}
+  </div>
+)
+
+const ImageUploadField = ({ label, name, onChange, preview, error }) => {
+  const inputRef = useRef(null)
+  return (
+    <div className="space-y-2">
+      <label className="block text-sm font-medium text-gray-700">{label}</label>
+
+      <div
+        className={`border-2 border-dashed rounded-xl p-4 text-center cursor-pointer hover:bg-gray-50 transition-colors ${
+          error ? "border-red-300 bg-red-50" : "border-gray-300"
+        }`}
+        onClick={() => inputRef.current?.click()}
+      >
+        <input
+          ref={inputRef}
+          type="file"
+          name={name}
+          accept="image/*"
+          onChange={onChange}
+          className="hidden"
+        />
+
+        {preview ? (
+          <div className="relative">
+            <img src={preview} alt="Preview" className="mx-auto h-48 object-contain rounded-lg" />
+            <div className="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
+              <div className="bg-black/50 text-white p-2 rounded-lg flex items-center gap-2">
+                <FiUpload /> Change Image
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="py-8 flex flex-col items-center">
+            <FiImage className="text-gray-400 text-4xl mb-2" />
+            <p className="text-gray-500">Click to upload product image</p>
+            <p className="text-gray-400 text-sm mt-1">JPG, PNG or WEBP (max 5MB)</p>
+          </div>
+        )}
+      </div>
+
+      {error && (
+        <p className="text-sm text-red-600 flex items-center gap-1">
+          <FiAlertCircle className="w-4 h-4" />
+          {error}
+        </p>
+      )}
+    </div>
+  )
+}
+
+// ---------- Main Page ----------
 const ProductPage = () => {
   const dispatch = useDispatch()
-  const { supplierProducts, isLoading, error, success } = useSelector((state) => state.product)
 
-  // Get supplier_id from localStorage (set this after supplier profile setup)
-  const userId = localStorage.getItem("user_id")
+  // Read keyed product state from slice
+  const {
+    productsBySupplierUserId,
+    loadingBySupplierUserId,
+    isLoading, // global loading for create/update/delete
+    error,
+    success,
+  } = useSelector((state) => state.product)
+
+  // Read user id safely in client
+  const [userId, setUserId] = useState(null)
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      setUserId(localStorage.getItem("user_id"))
+    }
+  }, [])
+
+  // Derive per-supplier data for the current user (for Stats only)
+  const supplierProducts = userId ? productsBySupplierUserId[userId] || [] : []
+  const isLoadingProducts = userId ? !!loadingBySupplierUserId[userId] : false
 
   // UI State
   const [showForm, setShowForm] = useState(false)
-  const [selectedProduct, setSelectedProduct] = useState(null)
+  const [imagePreview, setImagePreview] = useState(null)
 
-  // Product form state
+  // Form state
   const [form, setForm] = useState({
-    supplier: userId || "",
+    supplier: "",
     name: "",
     description: "",
     category: "",
@@ -40,50 +157,80 @@ const ProductPage = () => {
     price: "",
     unit: "",
     status: "Available",
+    image: null,
   })
-
   const [formErrors, setFormErrors] = useState({})
 
-  // Fetch products for this supplier on mount
+  // Fetch products for this supplier when userId is available
   useEffect(() => {
     if (userId) {
+      setForm((prev) => ({ ...prev, supplier: userId }))
       dispatch(listProductsBySupplier(userId))
     }
-    // Clear product state on unmount
-    return () => dispatch(clearProductState())
+    return () => {
+      dispatch(clearProductState())
+    }
   }, [dispatch, userId])
 
-  // If supplierId changes (e.g. after profile setup), update form
-  useEffect(() => {
-    setForm((prev) => ({ ...prev, supplier: userId }))
-  }, [userId])
-
-  // Form handlers
+  // Handlers
   const handleChange = (e) => {
     const { name, value } = e.target
     setForm((prev) => ({ ...prev, [name]: value }))
     if (formErrors[name]) setFormErrors((prev) => ({ ...prev, [name]: "" }))
   }
 
+  const handleImageChange = (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    const valid = ["image/jpeg", "image/png", "image/webp"]
+    if (!valid.includes(file.type)) {
+      setFormErrors((p) => ({ ...p, image: "Please upload a JPG, PNG, or WEBP file" }))
+      return
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setFormErrors((p) => ({ ...p, image: "Image must be less than 5MB" }))
+      return
+    }
+
+    setFormErrors((p) => ({ ...p, image: "" }))
+    setForm((prev) => ({ ...prev, image: file }))
+
+    const reader = new FileReader()
+    reader.onloadend = () => setImagePreview(reader.result)
+    reader.readAsDataURL(file)
+  }
+
   const validate = () => {
-    const errors = {}
-    if (!form.name.trim()) errors.name = "Product name is required"
-    if (!form.description.trim()) errors.description = "Product description is required"
-    if (!form.category.trim()) errors.category = "Category is required"
-    if (!form.quantity_available || isNaN(form.quantity_available)) errors.quantity_available = "Quantity is required"
-    if (!form.price || isNaN(form.price)) errors.price = "Price is required"
-    if (!form.unit.trim()) errors.unit = "Unit is required"
-    if (!form.supplier) errors.supplier = "Supplier ID is missing. Please set up your profile."
-    setFormErrors(errors)
-    return Object.keys(errors).length === 0
+    const err = {}
+    if (!form.supplier) err.supplier = "Supplier ID is missing"
+    if (!form.name.trim()) err.name = "Product name is required"
+    if (!form.description.trim()) err.description = "Product description is required"
+    if (!form.category.trim()) err.category = "Category is required"
+    if (form.quantity_available === "" || isNaN(Number(form.quantity_available))) err.quantity_available = "Quantity is required"
+    if (form.price === "" || isNaN(Number(form.price))) err.price = "Price is required"
+    if (!form.unit.trim()) err.unit = "Unit is required"
+    setFormErrors(err)
+    return Object.keys(err).length === 0
   }
 
   const handleSubmit = (e) => {
     e.preventDefault()
     if (!validate()) return
+    if (!userId) return
 
-    dispatch(createProduct(form)).then((res) => {
-      // If successful, refresh list and reset form
+    const formData = new FormData()
+    formData.append("supplier", form.supplier)
+    formData.append("name", form.name)
+    formData.append("description", form.description)
+    formData.append("category", form.category)
+    formData.append("quantity_available", String(form.quantity_available))
+    formData.append("price", String(form.price))
+    formData.append("unit", form.unit)
+    formData.append("status", form.status)
+    if (form.image) formData.append("image", form.image)
+
+    dispatch(createProduct(formData)).then((res) => {
       if (!res.error) {
         dispatch(listProductsBySupplier(userId))
         resetForm()
@@ -94,21 +241,23 @@ const ProductPage = () => {
 
   const resetForm = () => {
     setForm({
-      supplier: userId,
+      supplier: userId || "",
       name: "",
-      category: "",
       description: "",
+      category: "",
       quantity_available: "",
       price: "",
       unit: "",
       status: "Available",
+      image: null,
     })
+    setImagePreview(null)
     setFormErrors({})
   }
 
   const fillSampleData = () => {
-    setForm({
-      supplier: userId,
+    setForm((prev) => ({
+      ...prev,
       name: "Premium Urea Fertilizer",
       description: "High-quality nitrogen fertilizer for enhanced crop growth and yield",
       category: "Fertilizer",
@@ -116,150 +265,12 @@ const ProductPage = () => {
       price: "45.50",
       unit: "kg",
       status: "Available",
-    })
-  }
-
-  const handleEdit = (product) => {
-    setSelectedProduct(product)
-    setForm({
-      supplier: product.supplier,
-      name: product.name,
-      description: product.description,
-      category: product.category,
-      quantity_available: product.quantity_available.toString(),
-      price: product.price.toString(),
-      unit: product.unit,
-      status: product.status,
-    })
-    setShowForm(true)
-  }
-
-  const handleDelete = (productId) => {
-    if (window.confirm("Are you sure you want to delete this product?")) {
-      // Implement delete functionality
-      console.log("Delete product:", productId)
-    }
-  }
-
-  const handleView = (product) => {
-    setSelectedProduct(product)
-    // You can implement a modal or navigate to product details
-    console.log("View product:", product)
+    }))
   }
 
   const categories = ["Fertilizer", "Seeds", "Pesticide", "Tools", "Equipment", "Other"]
   const units = ["kg", "liter", "piece", "bag", "ton", "gram"]
-
-  const InputField = ({ label, name, type = "text", placeholder, options = null, ...props }) => (
-    <div className="space-y-2">
-      <label className="block text-sm font-medium text-gray-700">{label}</label>
-      {options ? (
-        <select
-          name={name}
-          value={form[name]}
-          onChange={handleChange}
-          className={`w-full px-4 py-3 bg-white border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all ${
-            formErrors[name] ? "border-red-300" : "border-gray-200"
-          }`}
-          {...props}
-        >
-          <option value="">{placeholder}</option>
-          {options.map((option) => (
-            <option key={option} value={option}>
-              {option}
-            </option>
-          ))}
-        </select>
-      ) : (
-        <input
-          type={type}
-          name={name}
-          value={form[name]}
-          onChange={handleChange}
-          placeholder={placeholder}
-          className={`w-full px-4 py-3 bg-white border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all ${
-            formErrors[name] ? "border-red-300" : "border-gray-200"
-          }`}
-          {...props}
-        />
-      )}
-      {formErrors[name] && (
-        <p className="text-sm text-red-600 flex items-center gap-1">
-          <FiAlertCircle className="w-4 h-4" />
-          {formErrors[name]}
-        </p>
-      )}
-    </div>
-  )
-
-  const ProductCard = ({ product }) => (
-    <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300">
-      <div className="flex items-start justify-between mb-4">
-        <div className="flex items-center gap-3">
-          <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
-            <FiPackage className="text-blue-600 text-xl" />
-          </div>
-          <div>
-            <h3 className="text-lg font-semibold text-gray-800">{product.name}</h3>
-            <p className="text-sm text-gray-600">{product.category}</p>
-          </div>
-        </div>
-        <span
-          className={`px-3 py-1 rounded-full text-xs font-semibold ${
-            product.status === "Available" ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-600"
-          }`}
-        >
-          {product.status}
-        </span>
-      </div>
-
-      <p className="text-gray-600 text-sm mb-4 line-clamp-2">{product.description}</p>
-
-      <div className="grid grid-cols-2 gap-4 mb-4">
-        <div className="bg-gray-50 rounded-lg p-3">
-          <div className="flex items-center gap-2 mb-1">
-            <FiLayers className="text-gray-500 text-sm" />
-            <span className="text-xs text-gray-500">Quantity</span>
-          </div>
-          <p className="font-semibold text-gray-800">
-            {product.quantity_available} {product.unit}
-          </p>
-        </div>
-        <div className="bg-gray-50 rounded-lg p-3">
-          <div className="flex items-center gap-2 mb-1">
-            <FiDollarSign className="text-gray-500 text-sm" />
-            <span className="text-xs text-gray-500">Price</span>
-          </div>
-          <p className="font-semibold text-gray-800">
-            ${product.price}/{product.unit}
-          </p>
-        </div>
-      </div>
-
-      <div className="flex items-center gap-2">
-        <button
-          onClick={() => handleView(product)}
-          className="flex-1 bg-blue-50 text-blue-600 py-2 px-4 rounded-lg hover:bg-blue-100 transition-colors flex items-center justify-center gap-2 text-sm font-medium"
-        >
-          <FiEye className="w-4 h-4" />
-          View
-        </button>
-        <button
-          onClick={() => handleEdit(product)}
-          className="flex-1 bg-green-50 text-green-600 py-2 px-4 rounded-lg hover:bg-green-100 transition-colors flex items-center justify-center gap-2 text-sm font-medium"
-        >
-          <FiEdit3 className="w-4 h-4" />
-          Edit
-        </button>
-        <button
-          onClick={() => handleDelete(product.id)}
-          className="bg-red-50 text-red-600 py-2 px-4 rounded-lg hover:bg-red-100 transition-colors flex items-center justify-center gap-2 text-sm font-medium"
-        >
-          <FiTrash2 className="w-4 h-4" />
-        </button>
-      </div>
-    </div>
-  )
+  const statusOptions = ["Available", "Unavailable"]
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50 p-6">
@@ -278,19 +289,21 @@ const ProductPage = () => {
             </div>
             <div className="flex items-center gap-3">
               <button
-                onClick={() => dispatch(listProductsBySupplier(userId))}
+                onClick={() => userId && dispatch(listProductsBySupplier(userId))}
                 className="bg-gray-100 text-gray-600 px-4 py-2 rounded-xl hover:bg-gray-200 transition-colors flex items-center gap-2"
-                disabled={isLoading}
+                disabled={isLoadingProducts || !userId}
               >
-                <FiRefreshCw className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`} />
+                <FiRefreshCw className={`w-4 h-4 ${isLoadingProducts ? "animate-spin" : ""}`} />
                 Refresh
               </button>
               <button
                 onClick={() => {
-                  setShowForm(!showForm)
-                  if (!showForm) resetForm()
+                  const next = !showForm
+                  setShowForm(next)
+                  if (next) resetForm()
                 }}
                 className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-200 flex items-center gap-2"
+                disabled={!userId}
               >
                 {showForm ? <FiX /> : <FiPlus />}
                 {showForm ? "Cancel" : "Add Product"}
@@ -299,7 +312,7 @@ const ProductPage = () => {
           </div>
         </div>
 
-        {/* Stats Cards */}
+        {/* Stats (from keyed map) */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <div className="bg-white/90 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-white/20">
             <div className="flex items-center gap-3">
@@ -362,7 +375,7 @@ const ProductPage = () => {
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-xl font-semibold text-gray-800 flex items-center gap-2">
                 <FiPlus className="text-blue-600" />
-                {selectedProduct ? "Edit Product" : "Add New Product"}
+                Add New Product
               </h2>
               <button
                 onClick={fillSampleData}
@@ -390,10 +403,32 @@ const ProductPage = () => {
 
             <form className="space-y-6" onSubmit={handleSubmit}>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <InputField label="Product Name" name="name" placeholder="e.g. Premium Urea Fertilizer" />
-                <InputField label="Category" name="category" placeholder="Select category" options={categories} />
+                <InputField
+                  label="Product Name"
+                  name="name"
+                  placeholder="e.g. Premium Urea Fertilizer"
+                  value={form.name}
+                  onChange={handleChange}
+                  error={formErrors.name}
+                />
+                <InputField
+                  label="Category"
+                  name="category"
+                  placeholder="Select category"
+                  options={categories}
+                  value={form.category}
+                  onChange={handleChange}
+                  error={formErrors.category}
+                />
                 <div className="md:col-span-2">
-                  <InputField label="Description" name="description" placeholder="Detailed product description" />
+                  <InputField
+                    label="Description"
+                    name="description"
+                    placeholder="Detailed product description"
+                    value={form.description}
+                    onChange={handleChange}
+                    error={formErrors.description}
+                  />
                 </div>
                 <InputField
                   label="Quantity Available"
@@ -401,8 +436,19 @@ const ProductPage = () => {
                   type="number"
                   placeholder="e.g. 500"
                   min="0"
+                  value={form.quantity_available}
+                  onChange={handleChange}
+                  error={formErrors.quantity_available}
                 />
-                <InputField label="Unit" name="unit" placeholder="Select unit" options={units} />
+                <InputField
+                  label="Unit"
+                  name="unit"
+                  placeholder="Select unit"
+                  options={units}
+                  value={form.unit}
+                  onChange={handleChange}
+                  error={formErrors.unit}
+                />
                 <InputField
                   label="Price per Unit ($)"
                   name="price"
@@ -410,7 +456,28 @@ const ProductPage = () => {
                   placeholder="e.g. 45.50"
                   min="0"
                   step="0.01"
+                  value={form.price}
+                  onChange={handleChange}
+                  error={formErrors.price}
                 />
+                <InputField
+                  label="Status"
+                  name="status"
+                  placeholder="Select status"
+                  options={statusOptions}
+                  value={form.status}
+                  onChange={handleChange}
+                  error={formErrors.status}
+                />
+                <div className="md:col-span-2">
+                  <ImageUploadField
+                    label="Product Image"
+                    name="image"
+                    onChange={handleImageChange}
+                    preview={imagePreview}
+                    error={formErrors.image}
+                  />
+                </div>
               </div>
 
               <div className="flex justify-end gap-4 pt-6 border-t border-gray-100">
@@ -419,7 +486,6 @@ const ProductPage = () => {
                   onClick={() => {
                     setShowForm(false)
                     resetForm()
-                    setSelectedProduct(null)
                   }}
                   className="px-6 py-3 border border-gray-200 text-gray-600 rounded-xl hover:bg-gray-50 transition-colors font-medium"
                 >
@@ -438,7 +504,7 @@ const ProductPage = () => {
                   ) : (
                     <>
                       <FiCheckCircle />
-                      {selectedProduct ? "Update Product" : "Add Product"}
+                      Add Product
                     </>
                   )}
                 </button>
@@ -447,50 +513,12 @@ const ProductPage = () => {
           </div>
         )}
 
-        {/* Products Grid */}
-        <div className="bg-white/90 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-white/20">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-semibold text-gray-800 flex items-center gap-2">
-              <FiBox className="text-blue-600" />
-              Your Products
-            </h2>
-            {supplierProducts && supplierProducts.length > 0 && (
-              <div className="flex items-center gap-2 text-sm text-gray-600">
-                <span>{supplierProducts.length} products</span>
-              </div>
-            )}
+        {/* Products Table (only this component renders the list) */}
+        {userId && (
+          <div className="mt-8">
+            <SupplierProductsTable supplierUserId={userId} />
           </div>
-
-          {isLoading ? (
-            <div className="flex items-center justify-center py-12">
-              <div className="flex items-center gap-3 text-blue-600">
-                <FiRefreshCw className="animate-spin text-xl" />
-                <span>Loading products...</span>
-              </div>
-            </div>
-          ) : supplierProducts && supplierProducts.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {supplierProducts.map((product) => (
-                <ProductCard key={product.id} product={product} />
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-12">
-              <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <FiPackage className="text-gray-400 text-3xl" />
-              </div>
-              <h3 className="text-lg font-semibold text-gray-600 mb-2">No products yet</h3>
-              <p className="text-gray-500 mb-6">Start by adding your first product to showcase your inventory</p>
-              <button
-                onClick={() => setShowForm(true)}
-                className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-200 flex items-center gap-2 mx-auto"
-              >
-                <FiPlus />
-                Add Your First Product
-              </button>
-            </div>
-          )}
-        </div>
+        )}
       </div>
     </div>
   )

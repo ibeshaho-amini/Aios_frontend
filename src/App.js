@@ -13,6 +13,7 @@ import AdminHome from './pages/Admin/overview';
 import FarmOverview from './pages/farmer/farmer-overview';
 import SupplierOverview from './pages/supplier/supp-overview';
 import UserManagement from './pages/Admin/user_management';
+import Market from './pages/farmer/marketplace';
 
 function App() {
   return (
@@ -23,6 +24,7 @@ function App() {
                     <Route path="/" element={<HomePage />} />
                     <Route path="/login" element={<Login />} />
                     <Route path="/signup" element={<Signup />} />
+                    <Route path ="/market" element={<Market/>}/>
 
                       {/* farmer routes */}
                     <Route path="/farmer-dashboard" element={<FarmerDashboardLayout />}>

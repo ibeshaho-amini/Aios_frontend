@@ -84,6 +84,12 @@ export default function LoginPage() {
         case "supplier":
           navigate("/supplier-dashboard")
           break
+        case "agronomist":
+          navigate("/farmer-dashboard")
+          break
+        case "leader":
+          navigate("/farmer-dashboard")
+          break
       }
     }
   }, [isAuthenticated, role, navigate, attemptedLogin])

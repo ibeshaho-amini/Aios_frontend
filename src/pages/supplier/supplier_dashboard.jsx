@@ -78,7 +78,7 @@ const SupplierDashboardLayout = () => {
             <nav className="space-y-1">
               <SidebarItem name="Dashboard" icon={<FiHome />} path="/supplier/dashboard" />
               <SidebarItem name="Products" icon={<FiBox />} path="/supplier-dashboard/products" />
-              <SidebarItem name="Orders" icon={<FiShoppingCart />} path="/supplier-dashboard/orders" />
+              <SidebarItem name="Orders" icon={<FiShoppingCart />} path="/supplier-dashboard/suppOrders" />
               <SidebarItem name="Analytics" icon={<FiBarChart2 />} path="/supplier-dashboard/analytics" />
               <SidebarItem name="Feedback" icon={<FiMessageCircle />} path="/supplier-dashboard/feedback" />
             </nav>

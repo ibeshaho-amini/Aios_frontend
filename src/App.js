@@ -14,6 +14,7 @@ import FarmOverview from './pages/farmer/farmer-overview';
 import SupplierOverview from './pages/supplier/supp-overview';
 import UserManagement from './pages/Admin/user_management';
 import Market from './pages/farmer/marketplace';
+import SuppOrders from './pages/supplier/supp_order';
 
 function App() {
   return (
@@ -38,6 +39,7 @@ function App() {
                     <Route index element={<SupplierOverview />} />
                     <Route path="profile" element={<Profile />} />
                     <Route path="products" element={<Products/>}/>
+                    <Route path="suppOrders" element={<SuppOrders/>}/>
                 </Route>
 
                 {/* admin routes */}

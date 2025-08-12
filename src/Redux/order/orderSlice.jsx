@@ -2,15 +2,6 @@ import { createSlice, createAsyncThunk } from '@reduxjs/toolkit'
 import axios from '../axiosInstance'
 
 // Create order
-// payload example:
-// {
-//   user: 5,                // buyer user id
-//   supplier: 3,            // Supplier table id (NOT user id)
-//   items: [
-//     { product: 42, quantity: 2, price_at_order: 1500.00 },
-//     { product: 13, quantity: 1 }
-//   ]
-// }
 export const createOrder = createAsyncThunk(
   'order/create',
   async (orderData, { rejectWithValue }) => {
@@ -18,7 +9,11 @@ export const createOrder = createAsyncThunk(
       const res = await axios.post('/orders/create/', orderData)
       return res.data
     } catch (err) {
-      return rejectWithValue(err.response?.data || { detail: 'Failed to create order' })
+      const data = err.response?.data
+      const message =
+        typeof data === 'string' ? data :
+        data?.detail || data?.error || 'Failed to create order'
+      return rejectWithValue({ detail: message, raw: data })
     }
   }
 )
@@ -31,7 +26,11 @@ export const listOrders = createAsyncThunk(
       const res = await axios.get('/orders/')
       return res.data
     } catch (err) {
-      return rejectWithValue(err.response?.data || { detail: 'Failed to fetch orders' })
+      const data = err.response?.data
+      const message =
+        typeof data === 'string' ? data :
+        data?.detail || data?.error || 'Failed to fetch orders'
+      return rejectWithValue({ detail: message, raw: data })
     }
   }
 )
@@ -44,7 +43,28 @@ export const getOrder = createAsyncThunk(
       const res = await axios.get(`/orders/${orderId}/`)
       return res.data
     } catch (err) {
-      return rejectWithValue(err.response?.data || { detail: 'Failed to fetch order' })
+      const data = err.response?.data
+      const message =
+        typeof data === 'string' ? data :
+        data?.detail || data?.error || 'Failed to fetch order'
+      return rejectWithValue({ detail: message, raw: data })
+    }
+  }
+)
+
+// NEW: Supplier updates order status (PATCH /orders/:orderID/status/)
+export const updateOrderStatus = createAsyncThunk(
+  'order/updateStatus',
+  async ({ orderID, status }, { rejectWithValue }) => {
+    try {
+      const res = await axios.patch(`/orders/${orderID}/status/`, { status })
+      return res.data
+    } catch (err) {
+      const data = err.response?.data
+      const message =
+        typeof data === 'string' ? data :
+        data?.detail || data?.error || 'Failed to update order status'
+      return rejectWithValue({ detail: message, raw: data })
     }
   }
 )
@@ -55,6 +75,11 @@ const initialState = {
   isLoading: false,
   error: null,
   success: null,
+}
+
+function replaceByOrderID(orders, updated) {
+  const idx = orders.findIndex(o => o.orderID === updated.orderID)
+  if (idx !== -1) orders[idx] = updated
 }
 
 const orderSlice = createSlice({
@@ -81,8 +106,7 @@ const orderSlice = createSlice({
         state.isLoading = false
         state.order = action.payload
         state.success = 'Order created successfully'
-        // Push into list for immediate UI reflection
-        if (state.orders && Array.isArray(state.orders)) {
+        if (Array.isArray(state.orders)) {
           state.orders.unshift(action.payload)
         }
       })
@@ -115,6 +139,28 @@ const orderSlice = createSlice({
         state.order = action.payload
       })
       .addCase(getOrder.rejected, (state, action) => {
+        state.isLoading = false
+        state.error = action.payload
+      })
+
+      // UPDATE STATUS (supplier action)
+      .addCase(updateOrderStatus.pending, (state) => {
+        state.isLoading = true
+        state.error = null
+        state.success = null
+      })
+      .addCase(updateOrderStatus.fulfilled, (state, action) => {
+        state.isLoading = false
+        state.success = 'Order status updated'
+        const updated = action.payload
+        if (updated) {
+          replaceByOrderID(state.orders, updated)
+          if (state.order?.orderID === updated.orderID) {
+            state.order = updated
+          }
+        }
+      })
+      .addCase(updateOrderStatus.rejected, (state, action) => {
         state.isLoading = false
         state.error = action.payload
       })

@@ -3,9 +3,17 @@ import { useDispatch, useSelector } from 'react-redux'
 import { listSuppliers } from '../../Redux/supplier/supplier_slice'
 import { listProductsBySupplier, listProducts } from '../../Redux/product/productSlice'
 import { Link, useNavigate } from 'react-router-dom'
+import api from '../../Redux/axiosInstance'
+
+// NEW imports (cart + optional order)
+import { getCart, addToCart } from '../../Redux/order/cartSlice' // adjust path
+// Optional: direct order
+import { createOrder } from '../../Redux/order/orderSlice' 
+import CartDrawer from '../../components/CartDrawer' 
 
 const placeholderImg = 'https://via.placeholder.com/300x200?text=No+Image'
 const apiBaseUrl = (process.env.REACT_APP_API_BASE_URL || '').replace(/\/$/, '')
+const USER_ENDPOINT_BASE = (process.env.REACT_APP_USER_ENDPOINT || '/users').replace(/\/$/, '')
 
 function resolveImageUrl(image) {
   if (!image || typeof image !== 'string') return placeholderImg
@@ -40,6 +48,11 @@ const MarketplacePage = () => {
     products: allProducts, // for fallback
   } = useSelector((state) => state.product)
 
+  // CART state
+  const { cart: cartState } = useSelector((s) => s.cart || {})
+  const cartCount = cartState?.items?.reduce((sum, it) => sum + Number(it.quantity || 0), 0) || 0
+  const [cartOpen, setCartOpen] = useState(false)
+
   // Filters
   const [search, setSearch] = useState('')
   const [category, setCategory] = useState('')
@@ -50,19 +63,23 @@ const MarketplacePage = () => {
   // Modal state
   const [modalOpen, setModalOpen] = useState(false)
   const [modalProduct, setModalProduct] = useState(null)
-  const [modalSupplierName, setModalSupplierName] = useState('')
+  const [modalSupplierLabel, setModalSupplierLabel] = useState('')
   const [orderQty, setOrderQty] = useState(1)
 
-  // Fetch suppliers on mount
+  // FRONTEND USERNAME CACHE: { [userId]: 'username' }
+  const [usernameCache, setUsernameCache] = useState({})
+
+  // Load suppliers + cart
   useEffect(() => {
     dispatch(listSuppliers())
+    dispatch(getCart()) // load cart count on page mount
   }, [dispatch])
 
   // Fetch products per supplier
   useEffect(() => {
     if (!suppliers || suppliers.length === 0) return
     suppliers.forEach((s) => {
-      const supplierUserId = s?.user?.id
+      const supplierUserId = typeof s?.user === 'object' ? s.user?.id : s?.user
       if (!supplierUserId) return
       const alreadyLoaded = Array.isArray(productsBySupplierUserId[supplierUserId])
       const isLoading = loadingBySupplierUserId[supplierUserId]
@@ -78,23 +95,89 @@ const MarketplacePage = () => {
     if (useFallbackAllProducts) dispatch(listProducts())
   }, [dispatch, useFallbackAllProducts])
 
-  // Map product.supplier id -> supplier name
-  const supplierNameById = useMemo(() => {
+  // Map userId -> username from suppliers (prefer user.username, fallback supplier.name)
+  const userIdToUsernameFromSuppliers = useMemo(() => {
     const map = {}
     suppliers?.forEach((s) => {
-      if (s?.user?.id != null) map[s.user.id] = s.name
-      // also map supplier.id just in case product.supplier equals Supplier.id
-      if (s?.id != null) map[s.id] = s.name
+      const uid = typeof s?.user === 'object' ? s.user?.id : s?.user
+      const uname = (typeof s?.user === 'object' ? s.user?.username : undefined) || s?.name
+      if (uid != null && uname) map[uid] = uname
     })
     return map
   }, [suppliers])
+
+  // Final username map (suppliers data + lazily fetched cache)
+  const userIdToUsername = useMemo(
+    () => ({ ...userIdToUsernameFromSuppliers, ...usernameCache }),
+    [userIdToUsernameFromSuppliers, usernameCache]
+  )
+
+  // Also map userId -> Supplier.id (for optional direct order)
+  const userIdToSupplierId = useMemo(() => {
+    const map = {}
+    suppliers?.forEach((s) => {
+      const uid = typeof s?.user === 'object' ? s.user?.id : s?.user
+      if (uid != null) map[uid] = s.id
+    })
+    return map
+  }, [suppliers])
+
+  // Collect missing userIds we need usernames for (displayed products only)
+  const missingUserIds = useMemo(() => {
+    const ids = new Set()
+    if (useFallbackAllProducts) {
+      (allProducts || []).forEach((p) => {
+        if (p?.supplier != null && !userIdToUsername[p.supplier]) ids.add(p.supplier)
+      })
+    } else {
+      suppliers?.forEach((s) => {
+        const uid = typeof s?.user === 'object' ? s.user?.id : s?.user
+        if (uid != null && !userIdToUsername[uid]) ids.add(uid)
+        const prods = uid ? productsBySupplierUserId[uid] : null
+        prods?.forEach((p) => {
+          if (p?.supplier != null && !userIdToUsername[p.supplier]) ids.add(p.supplier)
+        })
+      })
+    }
+    return Array.from(ids)
+  }, [useFallbackAllProducts, allProducts, suppliers, productsBySupplierUserId, userIdToUsername])
+
+  // Lazily fetch usernames for missing userIds (frontend-only approach)
+  useEffect(() => {
+    if (!missingUserIds.length) return
+    let cancelled = false
+    ;(async () => {
+      const updates = {}
+      await Promise.all(
+        missingUserIds.map(async (id) => {
+          try {
+            const res = await api.get(`${USER_ENDPOINT_BASE}/${id}/`)
+            const uname =
+              res.data?.username ||
+              res.data?.user?.username ||
+              res.data?.name ||
+              `user#${id}`
+            updates[id] = uname
+          } catch (e) {
+            updates[id] = `user#${id}`
+          }
+        })
+      )
+      if (!cancelled) {
+        setUsernameCache((prev) => ({ ...prev, ...updates }))
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [missingUserIds])
 
   // Flatten all loaded products (for categories and filter bounds)
   const flattenedLoadedProducts = useMemo(() => {
     if (!suppliers) return []
     const list = []
     suppliers.forEach((s) => {
-      const supplierUserId = s?.user?.id
+      const supplierUserId = typeof s?.user === 'object' ? s.user?.id : s?.user
       const prods = supplierUserId ? productsBySupplierUserId[supplierUserId] : []
       if (Array.isArray(prods)) list.push(...prods)
     })
@@ -144,9 +227,13 @@ const MarketplacePage = () => {
     })
   }
 
-  const openModal = (product, supplierName) => {
+  const openModal = (product, supplierLabel) => {
     setModalProduct(product)
-    setModalSupplierName(supplierName || supplierNameById[product?.supplier] || 'Unknown supplier')
+    setModalSupplierLabel(
+      supplierLabel ||
+      userIdToUsername[product?.supplier] ||
+      'Unknown user'
+    )
     setOrderQty(1)
     setModalOpen(true)
   }
@@ -155,14 +242,64 @@ const MarketplacePage = () => {
     setModalProduct(null)
   }
 
-  const handleMakeOrder = () => {
-    // Navigate to an order page with product and qty, or integrate your order flow here
-    navigate(`/orders/new?product=${modalProduct.id}&qty=${orderQty}`)
+  // ADD TO CART (recommended)
+  const handleMakeOrder = async () => {
+    if (!modalProduct || Number(orderQty) <= 0) return
+    const qty = Math.max(1, Number(orderQty))
+    const res = await dispatch(addToCart({ product: modalProduct.id, quantity: qty }))
+    if (!res.error) {
+      setModalOpen(false)
+      setCartOpen(true)
+    }
   }
+
+  // OPTIONAL: Direct place one-product order (bypass cart)
+  // Requires: orderSlice.createOrder and mapping userId->Supplier.id
+  // const handleMakeOrder = async () => {
+  //   const userId = localStorage.getItem('user_id') // or from auth slice
+  //   if (!userId || !modalProduct) return
+  //   const supplierId = userIdToSupplierId[modalProduct.supplier]
+  //   if (!supplierId) return alert('Supplier not found for this product')
+  //   const qty = Math.max(1, Number(orderQty))
+  //   const payload = {
+  //     user: Number(userId),
+  //     supplier: supplierId,
+  //     items: [{ product: modalProduct.id, quantity: qty, price_at_order: Number(modalProduct.price) }]
+  //   }
+  //   const res = await dispatch(createOrder(payload))
+  //   if (!res.error) {
+  //     setModalOpen(false)
+  //     navigate(`/orders/${res.payload.orderID}`)
+  //   }
+  // }
+
+  // Build product index for CartDrawer enrichment
+  const productIndex = useMemo(() => {
+    const idx = {}
+    suppliers?.forEach((s) => {
+      const uid = typeof s?.user === 'object' ? s.user?.id : s?.user
+      const prods = uid ? productsBySupplierUserId[uid] : []
+      prods?.forEach((p) => { idx[p.id] = p })
+    })
+    allProducts?.forEach?.((p) => { idx[p.id] = p })
+    return idx
+  }, [suppliers, productsBySupplierUserId, allProducts])
 
   return (
     <div style={styles.page}>
-      <h1 style={styles.title}>Marketplace</h1>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+        <h1 style={styles.title}>Marketplace</h1>
+        {/* Floating style button is below as well; this is optional top-right cart button */}
+        <button
+          onClick={() => setCartOpen(true)}
+          className="relative inline-flex items-center gap-2 bg-white border border-gray-200 text-gray-700 px-4 py-2 rounded-xl hover:bg-gray-50 transition-colors"
+        >
+          <span>Cart</span>
+          <span className="absolute -top-2 -right-2 bg-blue-600 text-white text-xs font-bold rounded-full px-2 py-0.5">
+            {cartCount}
+          </span>
+        </button>
+      </div>
 
       {/* Filters */}
       <div style={styles.filtersWrap}>
@@ -214,20 +351,18 @@ const MarketplacePage = () => {
       {useFallbackAllProducts ? (
         <AllProductsSection
           products={filterProducts(allProducts)}
-          supplierNameById={supplierNameById}
+          userIdToUsername={userIdToUsername}
           onOpenModal={openModal}
         />
       ) : (
         <div style={styles.supplierGrid}>
           {suppliers?.map((supplier) => {
-            const supplierUserId = supplier?.user?.id
+            const supplierUserId = typeof supplier?.user === 'object' ? supplier.user?.id : supplier?.user
             const products = supplierUserId ? productsBySupplierUserId[supplierUserId] : []
             const loading = supplierUserId ? !!loadingBySupplierUserId[supplierUserId] : false
             const error = supplierUserId ? errorBySupplierUserId[supplierUserId] : null
 
             const filtered = filterProducts(products)
-
-            // Hide suppliers with zero matching products
             if (!loading && !error && filtered.length === 0) return null
 
             return (
@@ -238,6 +373,7 @@ const MarketplacePage = () => {
                 loading={loading}
                 error={error}
                 onOpenModal={openModal}
+                username={userIdToUsername[supplierUserId] || supplier?.name}
               />
             )
           })}
@@ -248,16 +384,32 @@ const MarketplacePage = () => {
         open={modalOpen}
         onClose={closeModal}
         product={modalProduct}
-        supplierName={modalSupplierName}
+        supplierLabel={modalSupplierLabel}
         orderQty={orderQty}
         setOrderQty={setOrderQty}
         onMakeOrder={handleMakeOrder}
+      />
+
+      {/* Floating cart button (optional if you kept the top-right one) */}
+      <button
+        onClick={() => setCartOpen(true)}
+        className="fixed bottom-6 right-6 inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-3 rounded-2xl shadow-lg hover:bg-blue-700 transition"
+      >
+        <span className="font-semibold">Cart</span>
+        <span className="bg-white/20 rounded-full px-2 py-0.5 text-sm font-bold">{cartCount}</span>
+      </button>
+
+      {/* Cart Drawer */}
+      <CartDrawer
+        open={cartOpen}
+        onClose={() => setCartOpen(false)}
+        productIndex={productIndex}
       />
     </div>
   )
 }
 
-const SupplierSection = ({ supplier, products, loading, error, onOpenModal }) => {
+const SupplierSection = ({ supplier, products, loading, error, onOpenModal, username }) => {
   const logoUrl = resolveImageUrl(supplier.logo)
 
   return (
@@ -274,7 +426,7 @@ const SupplierSection = ({ supplier, products, loading, error, onOpenModal }) =>
           <div style={styles.supplierInfo}>
             <h2 style={styles.supplierName}>{supplier.name}</h2>
             <div style={styles.meta}>
-              <span>{supplier.location}</span>
+              <span>@{username}</span>
               <span style={{ marginLeft: 8, color: supplier.status === 'Active' ? '#16a34a' : '#ef4444' }}>
                 {supplier.status}
               </span>
@@ -288,23 +440,26 @@ const SupplierSection = ({ supplier, products, loading, error, onOpenModal }) =>
       {error && <div style={styles.error}>{error.detail || 'Failed to load products'}</div>}
 
       {!loading && !error && (
-        <>
-          {Array.isArray(products) && products.length > 0 ? (
-            <div style={styles.productsGrid}>
-              {products.map((p) => (
-                <ProductCard key={p.id} product={p} supplierName={supplier.name} onOpenModal={onOpenModal} />
-              ))}
-            </div>
-          ) : (
-            <div style={styles.muted}>No products available.</div>
-          )}
-        </>
+        Array.isArray(products) && products.length > 0 ? (
+          <div style={styles.productsGrid}>
+            {products.map((p) => (
+              <ProductCard
+                key={p.id}
+                product={p}
+                supplierLabel={username}
+                onOpenModal={onOpenModal}
+              />
+            ))}
+          </div>
+        ) : (
+          <div style={styles.muted}>No products available.</div>
+        )
       )}
     </div>
   )
 }
 
-const AllProductsSection = ({ products, supplierNameById, onOpenModal }) => {
+const AllProductsSection = ({ products, userIdToUsername, onOpenModal }) => {
   return (
     <div style={styles.supplierCard}>
       <div style={styles.supplierHeader}>
@@ -317,7 +472,7 @@ const AllProductsSection = ({ products, supplierNameById, onOpenModal }) => {
             <ProductCard
               key={p.id}
               product={p}
-              supplierName={supplierNameById[p.supplier] || 'Unknown supplier'}
+              supplierLabel={userIdToUsername[p.supplier] || 'Unknown user'}
               onOpenModal={onOpenModal}
             />
           ))}
@@ -329,7 +484,7 @@ const AllProductsSection = ({ products, supplierNameById, onOpenModal }) => {
   )
 }
 
-const ProductCard = ({ product, supplierName, onOpenModal }) => {
+const ProductCard = ({ product, supplierLabel, onOpenModal }) => {
   const imageUrl = resolveImageUrl(product.image || product.image_url)
 
   return (
@@ -347,7 +502,7 @@ const ProductCard = ({ product, supplierName, onOpenModal }) => {
           <div>
             <div style={styles.productName}>{product.name}</div>
             <div style={styles.productCategory}>{product.category}</div>
-            {supplierName && <div style={styles.productSupplier}>by {supplierName}</div>}
+            {supplierLabel && <div style={styles.productSupplier}>by @{supplierLabel}</div>}
           </div>
           <div style={styles.price}>
             {fmtRWF(product.price)} / {product.unit}
@@ -366,10 +521,10 @@ const ProductCard = ({ product, supplierName, onOpenModal }) => {
           </span>
         </div>
         <div style={styles.cardActions}>
-          <button onClick={() => onOpenModal(product, supplierName)} style={styles.btnPrimary}>
+          <button onClick={() => onOpenModal(product, supplierLabel)} style={styles.btnPrimary}>
             View
           </button>
-          <button onClick={() => onOpenModal(product, supplierName)} style={styles.btnSecondary}>
+          <button onClick={() => onOpenModal(product, supplierLabel)} style={styles.btnSecondary}>
             Order
           </button>
         </div>
@@ -378,7 +533,7 @@ const ProductCard = ({ product, supplierName, onOpenModal }) => {
   )
 }
 
-const ProductModal = ({ open, onClose, product, supplierName, orderQty, setOrderQty, onMakeOrder }) => {
+const ProductModal = ({ open, onClose, product, supplierLabel, orderQty, setOrderQty, onMakeOrder }) => {
   if (!open || !product) return null
   const imageUrl = resolveImageUrl(product.image || product.image_url)
   const total = Number(product.price) * Number(orderQty || 0)
@@ -402,7 +557,7 @@ const ProductModal = ({ open, onClose, product, supplierName, orderQty, setOrder
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
             <div style={{ color: '#6b7280' }}>{product.category}</div>
             <div style={{ fontSize: 16 }}>{product.description}</div>
-            <div><strong>Supplier:</strong> {supplierName || 'Unknown supplier'}</div>
+            <div><strong>Supplier:</strong> @{supplierLabel || 'unknown'}</div>
             <div><strong>Status:</strong> {product.status}</div>
             <div><strong>Available:</strong> {product.quantity_available} {product.unit}</div>
             <div style={{ fontWeight: 700 }}>{fmtRWF(product.price)} / {product.unit}</div>
@@ -422,7 +577,7 @@ const ProductModal = ({ open, onClose, product, supplierName, orderQty, setOrder
             </div>
 
             <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-              <button onClick={onMakeOrder} style={styles.btnPrimary}>Make Order</button>
+              <button onClick={onMakeOrder} style={styles.btnPrimary}>Add to cart</button>
               <Link to={`/products/${product.id}`} style={{ ...styles.btnLink }}>Go to detail</Link>
             </div>
           </div>
@@ -434,7 +589,7 @@ const ProductModal = ({ open, onClose, product, supplierName, orderQty, setOrder
 
 const styles = {
   page: { maxWidth: 1200, margin: '0 auto', padding: '24px' },
-  title: { fontSize: 28, marginBottom: 16 },
+  title: { fontSize: 28, marginBottom: 0 },
 
   // Filters
   filtersWrap: {
@@ -442,6 +597,7 @@ const styles = {
     flexWrap: 'wrap',
     gap: 12,
     alignItems: 'center',
+    marginTop: 12,
     marginBottom: 16,
     background: '#fff',
     padding: 12,
@@ -514,7 +670,6 @@ const styles = {
   cardActions: { display: 'flex', justifyContent: 'space-between', gap: 8, marginTop: 8 },
   btnPrimary: { padding: '8px 12px', borderRadius: 8, background: '#2563eb', color: '#fff', border: 'none', cursor: 'pointer', fontWeight: 600 },
   btnSecondary: { padding: '8px 12px', borderRadius: 8, background: '#10b981', color: '#fff', border: 'none', cursor: 'pointer', fontWeight: 600 },
-  btnLink: { padding: '8px 12px', borderRadius: 8, border: '1px solid #e5e7eb', color: '#374151', textDecoration: 'none' },
 
   // Modal
   modalBackdrop: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 },

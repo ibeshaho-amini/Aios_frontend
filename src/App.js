@@ -15,7 +15,10 @@ import SupplierOverview from './pages/supplier/supp-overview';
 import UserManagement from './pages/Admin/user_management';
 import Market from './pages/farmer/marketplace';
 import SuppOrders from './pages/supplier/supp_order';
-
+import FarmerOrder from './pages/farmer/farmer-order';
+import AgronomistDashboardLayout from './pages/agronomist/dashboard';
+import AgronomistInbox from './pages/agronomist/inboxes';
+import MyReviews from './pages/agronomist/myReviews'
 function App() {
   return (
       <Router>
@@ -31,6 +34,7 @@ function App() {
                     <Route path="/farmer-dashboard" element={<FarmerDashboardLayout />}>
                         <Route index element={<FarmOverview />} />
                         <Route path="recommendation" element={<Recommendation />} />
+                        <Route path="farmerOrder" element={<FarmerOrder/>}/>
                     </Route>
 
                 {/* suplier routes */}
@@ -45,10 +49,19 @@ function App() {
                 {/* admin routes */}
 
                 <Route path="/admin-dashboard" element={<AdminDashboardLayouts />}>
-                <Route index element={<AdminHome />} />
+                <Route index element={<AdminHome />}/>
                     <Route path="users" element={<UserManagement />} />
                     <Route path="products" element={<Products/>}/>
                 </Route>
+
+                <Route path="/agronomist-dashboard" element={<AgronomistDashboardLayout />}>
+                     <Route index element={<AdminHome />}/>
+                    <Route path="agronomistInbox" element={<AgronomistInbox />} />
+                    <Route path="myReviews" element={<MyReviews/>}/>
+                
+                </Route>
+
+
               </Routes>
               </div>
         </Router>

@@ -85,7 +85,7 @@ export default function LoginPage() {
           navigate("/supplier-dashboard")
           break
         case "agronomist":
-          navigate("/farmer-dashboard")
+          navigate("/agronomist-dashboard")
           break
         case "leader":
           navigate("/farmer-dashboard")

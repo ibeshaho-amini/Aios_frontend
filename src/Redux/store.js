@@ -6,7 +6,7 @@ import productReducer from './product/productSlice'
 import userReducer  from './authentication/userSlice'
 import orderReducer from './order/orderSlice'
 import cartReducer  from './order/cartSlice'
-
+import recommendReducer from './Recommendation/reviews'
 const store= configureStore({
 
     reducer:{
@@ -17,6 +17,7 @@ product:productReducer,
 users: userReducer,
 order:orderReducer,
 cart: cartReducer,
+recommend:recommendReducer,
 
     },
 

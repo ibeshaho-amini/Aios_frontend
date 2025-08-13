@@ -19,6 +19,7 @@ import FarmerOrder from './pages/farmer/farmer-order';
 import AgronomistDashboardLayout from './pages/agronomist/dashboard';
 import AgronomistInbox from './pages/agronomist/inboxes';
 import MyReviews from './pages/agronomist/myReviews'
+import FarmerRecommendations from './pages/farmer/farmer-reviews'
 function App() {
   return (
       <Router>
@@ -35,6 +36,7 @@ function App() {
                         <Route index element={<FarmOverview />} />
                         <Route path="recommendation" element={<Recommendation />} />
                         <Route path="farmerOrder" element={<FarmerOrder/>}/>
+                        <Route path="farmerRecommendations" element={<FarmerRecommendations/>}/>
                     </Route>
 
                 {/* suplier routes */}

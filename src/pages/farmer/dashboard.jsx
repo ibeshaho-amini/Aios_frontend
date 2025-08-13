@@ -106,7 +106,7 @@ const FarmerDashboardLayout = () => {
             <nav className="space-y-1">
               <SidebarItem name="Dashboard" icon={<FiHome />} path="/farmer/dashboard" />
               <SidebarItem name="Farm Recommendation" icon={<FiDroplet />} path="/farmer-dashboard/recommendation  " />
-              <SidebarItem name="Weather" icon={<FiCloud />} path="/farmer/weather" />
+              <SidebarItem name="Weather" icon={<FiCloud />} path="/farmer-dashboard/farmerRecommendations" />
               <SidebarItem name="Order" icon={<FiClipboard />} path="/farmer-dashboard/farmerOrder" />
               <SidebarItem name="Profile" icon={<FiUsers />} path="/farmer/labor" />
               <SidebarItem name="Report & Analytics" icon={<FiBarChart2 />} path="/farmer/reports" />

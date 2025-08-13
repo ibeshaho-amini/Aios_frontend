@@ -157,7 +157,7 @@ export const fetchMyRecommendations = createAsyncThunk(
   'recommendation/my',
   async (_, { rejectWithValue }) => {
     try {
-      const response = await axios.get('/recommendations/my-recommendations/');
+      const response = await axios.get('/recommendations/my/');
       return response.data;
     } catch (error) {
       return rejectWithValue(error.response?.data || { detail: 'Failed to fetch recommendations' });
@@ -209,7 +209,7 @@ export const getRecommendationDetails = createAsyncThunk(
   'recommendation/details',
   async (recId, { rejectWithValue }) => {
     try {
-      const response = await axios.get(`/recommendations/recommendation/${recId}/`);
+      const response = await axios.get(`/recommendations/${recId}/`);
       return response.data;
     } catch (error) {
       return rejectWithValue(error.response?.data || { detail: 'Failed to load' });

@@ -104,12 +104,12 @@ const FarmerDashboardLayout = () => {
           {/* Navigation */}
           <div className="flex-1 px-4 overflow-y-auto">
             <nav className="space-y-1">
-              <SidebarItem name="Dashboard" icon={<FiHome />} path="/farmer/dashboard" />
+              <SidebarItem name="Dashboard" icon={<FiHome />} path="/farmer-dashboard/overview"/>
               <SidebarItem name="Farm Recommendation" icon={<FiDroplet />} path="/farmer-dashboard/recommendation  " />
-              <SidebarItem name="Weather" icon={<FiCloud />} path="/farmer-dashboard/farmerRecommendations" />
+              <SidebarItem name="My Recommendations" icon={<FiCloud />} path="/farmer-dashboard/farmerRecommendations" />
               <SidebarItem name="Order" icon={<FiClipboard />} path="/farmer-dashboard/farmerOrder" />
-              <SidebarItem name="Profile" icon={<FiUsers />} path="/farmer/labor" />
-              <SidebarItem name="Report & Analytics" icon={<FiBarChart2 />} path="/farmer/reports" />
+              <SidebarItem name="Profile" icon={<FiUsers />} path="/farmer-dashboard/farmerProfile" />
+              <SidebarItem name="Report & Analytics" icon={<FiBarChart2 />} path="/farmer-dashboard/reports" />
             </nav>
 
             <div className="mt-8 pt-6 border-t border-white/20">
@@ -136,7 +136,7 @@ const FarmerDashboardLayout = () => {
             {/* Location Info */}
             <div className="flex items-center space-x-2 text-sm">
               <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-              <span className="text-gray-600">Ngawi, Indonesia</span>
+              <span className="text-gray-600">Kigali,Rwanda</span>
             </div>
           </div>
 

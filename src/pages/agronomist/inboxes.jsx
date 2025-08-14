@@ -512,7 +512,7 @@ const AgronomistInbox = () => {
               <div className="flex justify-between items-center">
                 <div>
                   <h3 className="text-lg font-bold text-green-800 flex items-center gap-2">
-                    {hasFertilizerPlan ? "Fertilizer" : "Crop"}: {rec.crop_predicted || rec.ai_outputs?.crop_predicted || "Unknown"}
+                    {hasFertilizerPlan ? "Fertilizer Plan For" : "Crop"}: {rec.crop_predicted || rec.ai_outputs?.crop_predicted || "Unknown"}
                     {isReviewed && (
                       <span className="bg-green-100 text-green-700 text-xs px-2 py-1 rounded-full flex items-center gap-1">
                         <FiCheck /> Reviewed

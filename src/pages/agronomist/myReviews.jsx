@@ -1,196 +1,3 @@
-// import React, { useEffect, useState } from "react";
-// import { useDispatch, useSelector } from "react-redux";
-// import { fetchAllAgronomistRecommendations } from "../../Redux/Recommendation/reviews";
-// import {
-//   FiCheckCircle,
-//   FiUserCheck,
-//   FiClock,
-//   FiLayers,
-//   FiEye,
-// } from "react-icons/fi";
-
-// const MyReviews = () => {
-//   const dispatch = useDispatch();
-//   const { isLoading, allRecommendations, error } = useSelector(
-//     (state) => state.recommend
-//   );
-
-//   // Grab user_id from localStorage
-//   const storedUser = localStorage.getItem("user_id");
-
-//   const [filter, setFilter] = useState("all"); // all, in_review, completed
-
-//   useEffect(() => {
-//     dispatch(fetchAllAgronomistRecommendations());
-//   }, [dispatch]);
-
-//   // 🧠 Filter only MY reviews (recommendations I've worked on)
-//   const myReviews = allRecommendations?.filter((rec) => {
-//     // Only show recommendations where I am the agronomist
-//     return rec.agronomist_id === parseInt(storedUser) && 
-//            ["translated", "returned", "in_review"].includes(rec.status);
-//   });
-
-//   // Additional filtering based on selected filter
-//   const filteredRecommendations = myReviews?.filter((rec) => {
-//     if (filter === "in_review") {
-//       return rec.status === "in_review";
-//     }
-//     if (filter === "completed") {
-//       return ["translated", "returned"].includes(rec.status);
-//     }
-//     return true; // show all my reviews
-//   });
-
-//   const getStatusBadge = (rec) => {
-//     if (rec.status === "in_review") {
-//       return (
-//         <span className="bg-yellow-100 text-yellow-800 text-xs px-3 py-1 rounded-full flex gap-2 items-center">
-//           <FiUserCheck />
-//           In Progress
-//         </span>
-//       );
-//     }
-//     if (rec.status === "translated") {
-//       return (
-//         <span className="bg-green-100 text-green-700 text-xs px-3 py-1 rounded-full flex gap-2 items-center">
-//           <FiCheckCircle />
-//           Translated
-//         </span>
-//       );
-//     }
-//     if (rec.status === "returned") {
-//       return (
-//         <span className="bg-blue-100 text-blue-700 text-xs px-3 py-1 rounded-full flex gap-2 items-center">
-//           <FiCheckCircle />
-//           Returned
-//         </span>
-//       );
-//     }
-//     return null;
-//   };
-
-//   return (
-//     <div className="max-w-6xl mx-auto px-6 py-10 space-y-6">
-//       <div className="flex justify-between items-center">
-//         <h1 className="text-3xl font-bold text-green-800 flex items-center gap-2">
-//           <FiLayers />
-//           My Reviews ({filteredRecommendations?.length || 0})
-//         </h1>
-
-//         <select
-//           className="border text-sm rounded px-4 py-2 bg-white shadow-sm"
-//           value={filter}
-//           onChange={(e) => setFilter(e.target.value)}
-//         >
-//           <option value="all">All My Reviews</option>
-//           <option value="in_review">In Progress</option>
-//           <option value="completed">Completed</option>
-//         </select>
-//       </div>
-
-//       {isLoading && (
-//         <div className="flex items-center justify-center py-8">
-//           <p className="text-yellow-600 flex items-center gap-2">
-//             <FiClock className="animate-spin" />
-//             Fetching your reviews...
-//           </p>
-//         </div>
-//       )}
-
-//       {error && (
-//         <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-//           <p className="text-red-600">Error: {error.detail || error}</p>
-//         </div>
-//       )}
-
-//       {!isLoading && filteredRecommendations?.length === 0 && (
-//         <div className="text-center py-12">
-//           <FiEye className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-//           <p className="text-gray-500 text-lg">
-//             {filter === "all" 
-//               ? "No reviews found. Start reviewing recommendations to see them here."
-//               : `No ${filter.replace('_', ' ')} reviews found.`}
-//           </p>
-//         </div>
-//       )}
-
-//       <div className="space-y-4">
-//         {filteredRecommendations?.map((rec) => (
-//           <div
-//             key={rec.id}
-//             className="bg-white border border-gray-200 rounded-lg p-6 shadow hover:shadow-md transition-shadow"
-//           >
-//             <div className="flex justify-between items-start">
-//               <div className="space-y-3 flex-1">
-//                 <div className="flex items-center gap-3">
-//                   <p className="text-xl font-bold text-green-800">
-//                     {rec.crop_predicted || "N/A"}
-//                   </p>
-//                   {getStatusBadge(rec)}
-//                 </div>
-                
-//                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-600">
-//                   <p className="flex items-center gap-2">
-//                     <FiClock />
-//                     Submitted: {new Date(rec.timestamp).toLocaleString()}
-//                   </p>
-                  
-//                   {rec.user && (
-//                     <p className="flex items-center gap-2">
-//                       👤 Farmer: {rec.user.name || rec.user.username || `User ${rec.user_id}`}
-//                     </p>
-//                   )}
-//                 </div>
-
-//                 {/* Show recommendation details if available */}
-//                 {rec.recommendation_text && (
-//                   <div className="mt-4 p-4 bg-gray-50 rounded-lg">
-//                     <h4 className="font-medium text-gray-700 mb-2">My Recommendation:</h4>
-//                     <p className="text-gray-600 text-sm leading-relaxed">
-//                       {rec.recommendation_text}
-//                     </p>
-//                   </div>
-//                 )}
-//               </div>
-//             </div>
-//           </div>
-//         ))}
-//       </div>
-
-//       {/* Summary stats */}
-//       {!isLoading && myReviews?.length > 0 && (
-//         <div className="bg-gradient-to-r from-green-50 to-blue-50 rounded-lg p-6 border border-green-200">
-//           <h3 className="text-lg font-semibold text-gray-700 mb-4">Review Summary</h3>
-//           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
-//             <div className="bg-white rounded-lg p-4 shadow-sm">
-//               <div className="text-2xl font-bold text-yellow-600">
-//                 {myReviews.filter(r => r.status === "in_review").length}
-//               </div>
-//               <div className="text-sm text-gray-600">In Progress</div>
-//             </div>
-//             <div className="bg-white rounded-lg p-4 shadow-sm">
-//               <div className="text-2xl font-bold text-green-600">
-//                 {myReviews.filter(r => r.status === "translated").length}
-//               </div>
-//               <div className="text-sm text-gray-600">Translated</div>
-//             </div>
-//             <div className="bg-white rounded-lg p-4 shadow-sm">
-//               <div className="text-2xl font-bold text-blue-600">
-//                 {myReviews.filter(r => r.status === "returned").length}
-//               </div>
-//               <div className="text-sm text-gray-600">Returned</div>
-//             </div>
-//           </div>
-//         </div>
-//       )}
-//     </div>
-//   );
-// };
-
-// export default MyReviews;
-
-
 import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchAllAgronomistRecommendations } from "../../Redux/Recommendation/reviews";
@@ -206,6 +13,10 @@ import {
   FiEdit3,
   FiUser,
   FiMapPin,
+  FiFilter,
+  FiDroplet,
+  FiSun,
+  FiBarChart2
 } from "react-icons/fi";
 
 const MyReviews = () => {
@@ -217,29 +28,31 @@ const MyReviews = () => {
   // Grab user_id from localStorage
   const storedUser = localStorage.getItem("user_id");
 
-  const [filter, setFilter] = useState("all"); // all, in_review, completed
-  const [expandedItems, setExpandedItems] = useState(new Set()); // Track expanded recommendation cards
+  const [filter, setFilter] = useState("all"); 
+  const [typeFilter, setTypeFilter] = useState("all"); // "all", "crop", "fertilizer"
+  const [expandedItems, setExpandedItems] = useState(new Set()); 
 
   useEffect(() => {
     dispatch(fetchAllAgronomistRecommendations());
   }, [dispatch]);
 
-  // 🧠 Filter only MY reviews (recommendations I've worked on)
   const myReviews = allRecommendations?.filter((rec) => {
-    // Only show recommendations where I am the agronomist
     return rec.agronomist_id === parseInt(storedUser) && 
            ["translated", "returned", "in_review"].includes(rec.status);
   });
 
   // Additional filtering based on selected filter
   const filteredRecommendations = myReviews?.filter((rec) => {
-    if (filter === "in_review") {
-      return rec.status === "in_review";
-    }
-    if (filter === "completed") {
-      return ["translated", "returned"].includes(rec.status);
-    }
-    return true; // show all my reviews
+    // First filter by status
+    if (filter === "in_review" && rec.status !== "in_review") return false;
+    if (filter === "completed" && !["translated", "returned"].includes(rec.status)) return false;
+    
+    // Then filter by type
+    const hasFertilizerPlan = !!(rec?.fertilizer_plan && Object.keys(rec.fertilizer_plan || {}).length);
+    if (typeFilter === "fertilizer" && !hasFertilizerPlan) return false;
+    if (typeFilter === "crop" && hasFertilizerPlan) return false;
+    
+    return true;
   });
 
   const toggleExpanded = (recId) => {
@@ -280,68 +93,158 @@ const MyReviews = () => {
     return null;
   };
 
+  // Render fertilizer plan helper
+  const renderPlan = (plan) => {
+    if (!plan) return null;
+    if (typeof plan !== "object" || Array.isArray(plan)) {
+      return (
+        <pre className="bg-gray-50 p-3 rounded border text-xs whitespace-pre-wrap break-words">
+          {JSON.stringify(plan, null, 2)}
+        </pre>
+      );
+    }
+    const entries = Object.entries(plan);
+    if (entries.length === 0) {
+      return <p className="text-sm text-gray-500">No plan details provided.</p>;
+    }
+    return (
+      <div className="space-y-3">
+        {entries.map(([k, v]) => (
+          <div key={k}>
+            <div className="font-semibold text-gray-800">{k}</div>
+            {typeof v === "object" ? (
+              <pre className="bg-gray-50 p-3 rounded border text-xs whitespace-pre-wrap break-words">
+                {JSON.stringify(v, null, 2)}
+              </pre>
+            ) : (
+              <p className="text-sm text-gray-700">{String(v)}</p>
+            )}
+          </div>
+        ))}
+      </div>
+    );
+  };
+
+  // Count by type
+  const fertilizerCount = myReviews?.filter(rec => 
+    !!(rec?.fertilizer_plan && Object.keys(rec.fertilizer_plan || {}).length)
+  ).length || 0;
+  
+  const cropCount = (myReviews?.length || 0) - fertilizerCount;
+
   return (
     <div className="max-w-6xl mx-auto px-6 py-10 space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold text-green-800 flex items-center gap-2">
-          <FiLayers />
-          My Reviews ({filteredRecommendations?.length || 0})
-        </h1>
+      {/* Header with filters */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <h1 className="text-2xl md:text-3xl font-bold text-green-800 flex items-center gap-2">
+            <FiLayers />
+            My Reviews ({filteredRecommendations?.length || 0})
+          </h1>
 
-        <select
-          className="border text-sm rounded px-4 py-2 bg-white shadow-sm"
-          value={filter}
-          onChange={(e) => setFilter(e.target.value)}
-        >
-          <option value="all">All My Reviews</option>
-          <option value="in_review">In Progress</option>
-          <option value="completed">Completed</option>
-        </select>
+          <div className="flex flex-wrap gap-3">
+            {/* Status filter */}
+            <div className="flex items-center gap-2">
+              <FiFilter className="text-gray-500" />
+              <select
+                className="border text-sm rounded-lg px-4 py-2 bg-white shadow-sm"
+                value={filter}
+                onChange={(e) => setFilter(e.target.value)}
+              >
+                <option value="all">All Statuses</option>
+                <option value="in_review">In Progress</option>
+                <option value="completed">Completed</option>
+              </select>
+            </div>
+
+            {/* Type filter */}
+            <div className="flex items-center gap-2">
+              <FiBarChart2 className="text-gray-500" />
+              <select
+                className="border text-sm rounded-lg px-4 py-2 bg-white shadow-sm"
+                value={typeFilter}
+                onChange={(e) => setTypeFilter(e.target.value)}
+              >
+                <option value="all">All Types</option>
+                <option value="crop">Crop Only ({cropCount})</option>
+                <option value="fertilizer">Fertilizer Plans ({fertilizerCount})</option>
+              </select>
+            </div>
+          </div>
+        </div>
       </div>
 
+      {/* Loading state */}
       {isLoading && (
         <div className="flex items-center justify-center py-8">
-          <p className="text-yellow-600 flex items-center gap-2">
-            <FiClock className="animate-spin" />
-            Fetching your reviews...
-          </p>
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8 text-center">
+            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-green-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">Fetching your reviews...</p>
+          </div>
         </div>
       )}
 
+      {/* Error state */}
       {error && (
         <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-          <p className="text-red-600">Error: {error.detail || error}</p>
-        </div>
-      )}
-
-      {!isLoading && filteredRecommendations?.length === 0 && (
-        <div className="text-center py-12">
-          <FiEye className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-          <p className="text-gray-500 text-lg">
-            {filter === "all" 
-              ? "No reviews found. Start reviewing recommendations to see them here."
-              : `No ${filter.replace('_', ' ')} reviews found.`}
+          <p className="text-red-600 flex items-center gap-2">
+            <FiFileText className="text-red-500" />
+            Error: {error.detail || error}
           </p>
         </div>
       )}
 
+      {/* Empty state */}
+      {!isLoading && filteredRecommendations?.length === 0 && (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8 text-center">
+          <FiEye className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+          <p className="text-gray-500 text-lg">
+            {filter === "all" && typeFilter === "all"
+              ? "No reviews found. Start reviewing recommendations to see them here."
+              : `No ${filter.replace('_', ' ')} ${typeFilter} reviews found.`}
+          </p>
+        </div>
+      )}
+
+      {/* Reviews list */}
       <div className="space-y-4">
         {filteredRecommendations?.map((rec) => {
           const isExpanded = expandedItems.has(rec.id);
+          const hasFertilizerPlan = !!(rec?.fertilizer_plan && Object.keys(rec.fertilizer_plan || {}).length);
           
           return (
             <div
               key={rec.id}
-              className="bg-white border border-gray-200 rounded-lg shadow hover:shadow-md transition-shadow"
+              className={`bg-white border rounded-xl shadow-sm overflow-hidden ${
+                hasFertilizerPlan ? "border-indigo-200" : "border-green-200"
+              }`}
             >
-              {/* Main Card Content */}
+              {/* Card Header */}
               <div className="p-6">
                 <div className="flex justify-between items-start">
                   <div className="space-y-3 flex-1">
                     <div className="flex items-center gap-3">
-                      <p className="text-xl font-bold text-green-800">
-                        {rec.crop_predicted || "N/A"}
-                      </p>
+                      {/* Type indicator */}
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                        hasFertilizerPlan ? "bg-indigo-100" : "bg-green-100"
+                      }`}>
+                        {hasFertilizerPlan 
+                          ? <FiDroplet className="text-indigo-600" /> 
+                          : <FiSun className="text-green-600" />
+                        }
+                      </div>
+                      
+                      {/* Title */}
+                      <div>
+                        <p className="text-xl font-bold text-gray-800">
+                          {hasFertilizerPlan ? "Fertilizer Plan" : "Crop Recommendation"}
+                        </p>
+                        <p className="text-sm text-gray-600">
+                          {rec.crop_predicted || "N/A"}
+                        </p>
+                      </div>
+                      
+                      {/* Status badge */}
                       {getStatusBadge(rec)}
                     </div>
                     
@@ -351,18 +254,20 @@ const MyReviews = () => {
                         Submitted: {new Date(rec.timestamp).toLocaleString()}
                       </p>
                       
-                      {rec.user && (
+                      {/* {rec.user && (
                         <p className="flex items-center gap-2">
                           <FiUser />
                           Farmer: {rec.user.name || rec.user.username || `User ${rec.user_id}`}
                         </p>
-                      )}
+                      )} */}
                     </div>
                   </div>
                   
                   <button
                     onClick={() => toggleExpanded(rec.id)}
-                    className="ml-4 p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                    className={`ml-4 p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors ${
+                      isExpanded ? "bg-gray-100" : ""
+                    }`}
                     title={isExpanded ? "Hide details" : "Show details"}
                   >
                     {isExpanded ? <FiChevronUp size={20} /> : <FiChevronDown size={20} />}
@@ -432,6 +337,29 @@ const MyReviews = () => {
                         )}
                       </div>
                     </div>
+
+                    {/* Fertilizer Plan (if applicable) */}
+                    {hasFertilizerPlan && (
+                      <div className="bg-white rounded-lg p-4 border border-indigo-200">
+                        <h4 className="font-semibold text-indigo-800 mb-3 flex items-center gap-2">
+                          <FiDroplet className="text-indigo-500" />
+                          Fertilizer Plan
+                        </h4>
+                        {renderPlan(rec.fertilizer_plan)}
+                        
+                        {/* ML Usage if available */}
+                        {rec.ai_outputs && (rec.ai_outputs.fertilizer_quantity || rec.ai_outputs.application_timing || rec.ai_outputs.application_method) && (
+                          <div className="mt-4 bg-indigo-50 p-3 rounded-lg">
+                            <h5 className="font-medium text-indigo-900 mb-2">ML Usage</h5>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
+                              <p><strong>Quantity:</strong> {rec.ai_outputs.fertilizer_quantity ?? "N/A"}</p>
+                              <p><strong>Timing:</strong> {rec.ai_outputs.application_timing ?? "N/A"}</p>
+                              <p><strong>Method:</strong> {rec.ai_outputs.application_method ?? "N/A"}</p>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
 
                     {/* AI Predictions */}
                     <div className="bg-white rounded-lg p-4 border">
@@ -552,7 +480,11 @@ const MyReviews = () => {
       {!isLoading && myReviews?.length > 0 && (
         <div className="bg-gradient-to-r from-green-50 to-blue-50 rounded-lg p-6 border border-green-200">
           <h3 className="text-lg font-semibold text-gray-700 mb-4">Review Summary</h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4 text-center">
+            <div className="bg-white rounded-lg p-4 shadow-sm">
+              <div className="text-2xl font-bold text-gray-800">{myReviews.length}</div>
+              <div className="text-sm text-gray-600">Total</div>
+            </div>
             <div className="bg-white rounded-lg p-4 shadow-sm">
               <div className="text-2xl font-bold text-yellow-600">
                 {myReviews.filter(r => r.status === "in_review").length}
@@ -570,6 +502,10 @@ const MyReviews = () => {
                 {myReviews.filter(r => r.status === "returned").length}
               </div>
               <div className="text-sm text-gray-600">Returned</div>
+            </div>
+            <div className="bg-white rounded-lg p-4 shadow-sm">
+              <div className="text-2xl font-bold text-indigo-600">{fertilizerCount}</div>
+              <div className="text-sm text-gray-600">Fertilizer Plans</div>
             </div>
           </div>
         </div>

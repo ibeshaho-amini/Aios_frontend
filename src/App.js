@@ -21,6 +21,8 @@ import AgronomistInbox from './pages/agronomist/inboxes';
 import MyReviews from './pages/agronomist/myReviews'
 import FarmerRecommendations from './pages/farmer/farmer-reviews'
 import FarmerProfile from './pages/farmer/farmer_profile'
+import AgroOverview from './pages/agronomist/overview'
+import SupAnalytics from './pages/supplier/analytics'
 function App() {
   return (
       <Router>
@@ -50,6 +52,7 @@ function App() {
                     <Route path="profile" element={<Profile />} />
                     <Route path="products" element={<Products/>}/>
                     <Route path="suppOrders" element={<SuppOrders/>}/>
+                    <Route path="supAnalytics" element={<SupAnalytics/>}/>
                 </Route>
 
                 {/* admin routes */}
@@ -58,10 +61,12 @@ function App() {
                 <Route index element={<AdminHome />}/>
                     <Route path="users" element={<UserManagement />} />
                     <Route path="products" element={<Products/>}/>
+                    
                 </Route>
 
                 <Route path="/agronomist-dashboard" element={<AgronomistDashboardLayout />}>
-                     <Route index element={<AdminHome />}/>
+                     <Route index element={<AgroOverview />}/>
+                     <Route path="agroOverview" element={<AgroOverview/>}/>
                     <Route path="agronomistInbox" element={<AgronomistInbox />} />
                     <Route path="myReviews" element={<MyReviews/>}/>
                 

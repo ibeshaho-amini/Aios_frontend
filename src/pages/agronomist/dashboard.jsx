@@ -1,19 +1,19 @@
 "use client"
 
 import { useState } from "react"
-import { NavLink, Outlet, useLocation, Link } from "react-router-dom"
+import { NavLink, Outlet, useLocation, Link, useNavigate } from "react-router-dom"
+import { useDispatch, useSelector } from "react-redux"
 import {
   FiHome,
   FiInbox,
   FiCheckSquare,
-  FiEdit3,
-  FiUsers,
-  FiBookOpen,
   FiBarChart2,
   FiSettings,
   FiHelpCircle,
   FiSearch,
+  FiLogOut,
 } from "react-icons/fi"
+import { logoutUser } from "../../Redux/authentication/login" 
 
 const SidebarItem = ({ name, icon, path }) => {
   const location = useLocation()
@@ -35,8 +35,29 @@ const SidebarItem = ({ name, icon, path }) => {
 
 const AgronomistDashboardLayout = () => {
   const [isSidebarOpen, setSidebarOpen] = useState(false)
+  const [isLoggingOut, setIsLoggingOut] = useState(false)
   const location = useLocation()
+  const navigate = useNavigate()
+  const dispatch = useDispatch()
+
+  // If you want user info for header initial
+  const userInfo = useSelector((s) => s.auth?.userInfo)
+  const userInitial = (userInfo?.fullnames || userInfo?.username || "A").charAt(0).toUpperCase()
+
   const toggleSidebar = () => setSidebarOpen(!isSidebarOpen)
+
+  const handleLogout = async () => {
+    try {
+      setIsLoggingOut(true)
+      await dispatch(logoutUser()).unwrap()
+      navigate("/login")
+    } catch (err) {
+      // Optional: show toast
+      console.error("Logout failed:", err)
+    } finally {
+      setIsLoggingOut(false)
+    }
+  }
 
   const generateBreadcrumbs = () => {
     const pathnames = location.pathname.split("/").filter(Boolean)
@@ -103,9 +124,6 @@ const AgronomistDashboardLayout = () => {
               <SidebarItem name="Dashboard" icon={<FiHome />} path="/agronomist-dashboard/dashboard" />
               <SidebarItem name="Incoming Recommendations" icon={<FiInbox />} path="/agronomist-dashboard/agronomistInbox" />
               <SidebarItem name="My Reviews" icon={<FiCheckSquare />} path="/agronomist-dashboard/myReviews" />
-              <SidebarItem name="Translate & Send" icon={<FiEdit3 />} path="/agronomist/translate" />
-              <SidebarItem name="Farmers & Messages" icon={<FiUsers />} path="/agronomist/messages" />
-              <SidebarItem name="Knowledge Base" icon={<FiBookOpen />} path="/agronomist/knowledge" />
               <SidebarItem name="Reports & Analytics" icon={<FiBarChart2 />} path="/agronomist/reports" />
             </nav>
 
@@ -113,6 +131,14 @@ const AgronomistDashboardLayout = () => {
               <nav className="space-y-1">
                 <SidebarItem name="Settings" icon={<FiSettings />} path="/agronomist/settings" />
                 <SidebarItem name="Support" icon={<FiHelpCircle />} path="/agronomist/support" />
+                {/* Logout in sidebar */}
+                <button
+                  onClick={handleLogout}
+                  className="w-full flex items-center gap-3 py-3 px-3 text-sm rounded-lg transition-all duration-200 text-white/80 hover:bg-white/10 hover:text-white"
+                >
+                  <span className="text-white/70"><FiLogOut /></span>
+                  <span>{isLoggingOut ? "Logging out..." : "Logout"}</span>
+                </button>
               </nav>
             </div>
           </div>
@@ -140,9 +166,23 @@ const AgronomistDashboardLayout = () => {
             {/* Role badge */}
             <span className="px-2 py-1 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-700">Agronomist</span>
             {/* Avatar */}
-            <div className="flex items-center space-x-1 bg-emerald-50 px-3 py-1.5 rounded-lg">
-              <span className="text-emerald-700 font-medium text-sm">A</span>
+            <div className="flex items-center space-x-2 bg-emerald-50 px-3 py-1.5 rounded-lg">
+              <span className="text-emerald-700 font-medium text-sm">{userInitial}</span>
             </div>
+            {/* Logout in header */}
+            <button
+              onClick={handleLogout}
+              disabled={isLoggingOut}
+              className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm border ${
+                isLoggingOut
+                  ? "bg-gray-100 text-gray-500 cursor-not-allowed"
+                  : "bg-white hover:bg-gray-50 text-gray-700"
+              }`}
+              title="Logout"
+            >
+              <FiLogOut />
+              {isLoggingOut ? "Logging out..." : "Logout"}
+            </button>
           </div>
         </header>
 

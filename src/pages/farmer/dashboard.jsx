@@ -1,7 +1,8 @@
 "use client"
 
 import { useState } from "react"
-import { NavLink, Outlet, useLocation, Link } from "react-router-dom"
+import { NavLink, Outlet, useLocation, Link, useNavigate } from "react-router-dom"
+import { useDispatch, useSelector } from "react-redux"
 import {
   FiHome,
   FiDroplet,
@@ -12,7 +13,10 @@ import {
   FiSettings,
   FiHelpCircle,
   FiSearch,
+  FiLogOut,
 } from "react-icons/fi"
+
+import { logoutUser } from "../../Redux/authentication/login"
 
 const SidebarItem = ({ name, icon, path }) => {
   const location = useLocation()
@@ -34,9 +38,27 @@ const SidebarItem = ({ name, icon, path }) => {
 
 const FarmerDashboardLayout = () => {
   const [isSidebarOpen, setSidebarOpen] = useState(false)
+  const [isLoggingOut, setIsLoggingOut] = useState(false)
   const location = useLocation()
+  const navigate = useNavigate()
+  const dispatch = useDispatch()
+
+  const userInfo = useSelector((s) => s.auth?.userInfo)
+  const userInitial = (userInfo?.fullnames || userInfo?.username || "F").charAt(0).toUpperCase()
 
   const toggleSidebar = () => setSidebarOpen(!isSidebarOpen)
+
+  const handleLogout = async () => {
+    try {
+      setIsLoggingOut(true)
+      await dispatch(logoutUser()).unwrap()
+      navigate("/login")
+    } catch (err) {
+      console.error("Logout failed:", err)
+    } finally {
+      setIsLoggingOut(false)
+    }
+  }
 
   const generateBreadcrumbs = () => {
     const pathnames = location.pathname.split("/").filter((x) => x)
@@ -104,8 +126,9 @@ const FarmerDashboardLayout = () => {
           {/* Navigation */}
           <div className="flex-1 px-4 overflow-y-auto">
             <nav className="space-y-1">
-              <SidebarItem name="Dashboard" icon={<FiHome />} path="/farmer-dashboard/overview"/>
-              <SidebarItem name="Farm Recommendation" icon={<FiDroplet />} path="/farmer-dashboard/recommendation  " />
+              <SidebarItem name="Dashboard" icon={<FiHome />} path="/farmer-dashboard/overview" />
+              {/* removed trailing spaces from path */}
+              <SidebarItem name="Farm Recommendation" icon={<FiDroplet />} path="/farmer-dashboard/recommendation" />
               <SidebarItem name="My Recommendations" icon={<FiCloud />} path="/farmer-dashboard/farmerRecommendations" />
               <SidebarItem name="Order" icon={<FiClipboard />} path="/farmer-dashboard/farmerOrder" />
               <SidebarItem name="Profile" icon={<FiUsers />} path="/farmer-dashboard/farmerProfile" />
@@ -116,6 +139,15 @@ const FarmerDashboardLayout = () => {
               <nav className="space-y-1">
                 <SidebarItem name="Setting" icon={<FiSettings />} path="/farmer/settings" />
                 <SidebarItem name="Feedback" icon={<FiHelpCircle />} path="/farmer/support" />
+                {/* Logout in sidebar */}
+                <button
+                  onClick={handleLogout}
+                  className="w-full flex items-center gap-3 py-3 px-3 text-sm rounded-lg transition-all duration-200 text-white/80 hover:bg-white/10 hover:text-white"
+                  title="Logout"
+                >
+                  <span className="text-white/70"><FiLogOut /></span>
+                  <span>{isLoggingOut ? "Logging out..." : "Logout"}</span>
+                </button>
               </nav>
             </div>
           </div>
@@ -133,17 +165,29 @@ const FarmerDashboardLayout = () => {
               </svg>
             </button>
 
-            {/* Location Info */}
-            <div className="flex items-center space-x-2 text-sm">
-              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-              <span className="text-gray-600">Kigali,Rwanda</span>
-            </div>
+            {/* Breadcrumbs */}
+            <ul className="flex items-center text-sm">
+              {generateBreadcrumbs()}
+            </ul>
           </div>
 
           <div className="flex items-center space-x-4">
+            {/* Avatar */}
             <div className="flex items-center space-x-1 bg-green-50 px-3 py-1.5 rounded-lg">
-              <span className="text-green-700 font-medium text-sm">F</span>
+              <span className="text-green-700 font-medium text-sm">{userInitial}</span>
             </div>
+            {/* Logout in header */}
+            <button
+              onClick={handleLogout}
+              disabled={isLoggingOut}
+              className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm border ${
+                isLoggingOut ? "bg-gray-100 text-gray-500 cursor-not-allowed" : "bg-white hover:bg-gray-50 text-gray-700"
+              }`}
+              title="Logout"
+            >
+              <FiLogOut />
+              {isLoggingOut ? "Logging out..." : "Logout"}
+            </button>
           </div>
         </header>
 

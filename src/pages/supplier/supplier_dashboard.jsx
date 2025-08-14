@@ -1,7 +1,8 @@
 "use client"
 
 import { useState } from "react"
-import { NavLink, Outlet, useLocation, Link } from "react-router-dom"
+import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom"
+import { useDispatch, useSelector } from "react-redux"
 import { FaLeaf } from "react-icons/fa"
 import {
   FiHome,
@@ -13,7 +14,11 @@ import {
   FiHelpCircle,
   FiSearch,
   FiShoppingCart,
+  FiLogOut,
 } from "react-icons/fi"
+
+// Keep your existing path for the auth thunk
+import { logoutUser } from "../../Redux/authentication/login"
 
 const SidebarItem = ({ name, icon, path }) => {
   const location = useLocation()
@@ -23,11 +28,11 @@ const SidebarItem = ({ name, icon, path }) => {
       to={path}
       className={`flex items-center gap-3 py-3 px-3 text-sm rounded-lg transition-all duration-200 ${
         isActive
-          ? "text-white bg-white/20 backdrop-blur-sm font-medium border-r-2 border-blue-300"
+          ? "text-white bg-white/20 backdrop-blur-sm font-medium border-r-2 border-emerald-300"
           : "text-white/80 hover:bg-white/10 hover:text-white"
       }`}
     >
-      <span className={isActive ? "text-blue-200" : "text-white/70"}>{icon}</span>
+      <span className={isActive ? "text-emerald-200" : "text-white/70"}>{icon}</span>
       <span>{name}</span>
     </NavLink>
   )
@@ -35,21 +40,38 @@ const SidebarItem = ({ name, icon, path }) => {
 
 const SupplierDashboardLayout = () => {
   const [isSidebarOpen, setSidebarOpen] = useState(false)
+  const [isLoggingOut, setIsLoggingOut] = useState(false)
   const location = useLocation()
+  const navigate = useNavigate()
+  const dispatch = useDispatch()
+
+  const userInfo = useSelector((s) => s.auth?.userInfo)
+  const userInitial = (userInfo?.fullnames || userInfo?.username || "S").charAt(0).toUpperCase()
 
   const toggleSidebar = () => setSidebarOpen(!isSidebarOpen)
 
+  const handleLogout = async () => {
+    try {
+      setIsLoggingOut(true)
+      await dispatch(logoutUser()).unwrap()
+      navigate("/login")
+    } catch (err) {
+      console.error("Logout failed:", err)
+    } finally {
+      setIsLoggingOut(false)
+    }
+  }
+
   return (
-    <div className="flex h-screen bg-gradient-to-br from-blue-400 via-blue-300 to-orange-200">
+    <div className="flex h-screen bg-gradient-to-br from-emerald-400 via-emerald-300 to-green-200">
       {/* Sidebar */}
       <div
-        className={`fixed inset-y-0 left-0 z-50 w-[280px] bg-gradient-to-b from-blue-800 to-blue-900 shadow-xl transition-transform duration-300 transform ${
+        className={`fixed inset-y-0 left-0 z-50 w-[280px] bg-gradient-to-b from-emerald-800 to-emerald-900 shadow-xl transition-transform duration-300 transform ${
           isSidebarOpen ? "translate-x-0" : "-translate-x-full"
         } lg:translate-x-0 lg:block`}
       >
         <div className="flex flex-col h-full">
           {/* Logo Section */}
-          <div className="px-6 py-6">
           <div className="px-6 py-6">
             <div className="flex items-center space-x-3">
               <div className="w-8 h-8 bg-white/20 backdrop-blur-sm rounded-lg flex items-center justify-center">
@@ -57,19 +79,18 @@ const SupplierDashboardLayout = () => {
               </div>
               <h1 className="text-xl font-semibold text-white">AIOS</h1>
             </div>
-            </div>
           </div>
 
           {/* Search */}
           <div className="px-6 pb-6">
             <div className="relative">
-              <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-white/60" />
+              <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/60" />
               <input
                 type="text"
                 placeholder="Search menus..."
                 className="w-full py-2.5 pl-10 pr-4 bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg text-sm text-white placeholder-white/60 focus:bg-white/20 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/40 transition-all"
               />
-              <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-xs text-white/50">/</span>
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-white/50">/</span>
             </div>
           </div>
 
@@ -79,7 +100,7 @@ const SupplierDashboardLayout = () => {
               <SidebarItem name="Dashboard" icon={<FiHome />} path="/supplier/dashboard" />
               <SidebarItem name="Products" icon={<FiBox />} path="/supplier-dashboard/products" />
               <SidebarItem name="Orders" icon={<FiShoppingCart />} path="/supplier-dashboard/suppOrders" />
-              <SidebarItem name="Analytics" icon={<FiBarChart2 />} path="/supplier-dashboard/analytics" />
+              <SidebarItem name="Analytics" icon={<FiBarChart2 />} path="/supplier-dashboard/supAnalytics" />
               <SidebarItem name="Feedback" icon={<FiMessageCircle />} path="/supplier-dashboard/feedback" />
             </nav>
 
@@ -87,6 +108,15 @@ const SupplierDashboardLayout = () => {
               <nav className="space-y-1">
                 <SidebarItem name="Profile" icon={<FiSettings />} path="/supplier-dashboard/profile" />
                 <SidebarItem name="Help & Support" icon={<FiHelpCircle />} path="/supplier-dashboard/support" />
+                {/* Logout in sidebar */}
+                <button
+                  onClick={handleLogout}
+                  className="w-full flex items-center gap-3 py-3 px-3 text-sm rounded-lg transition-all duration-200 text-white/80 hover:bg-white/10 hover:text-white"
+                  title="Logout"
+                >
+                  <span className="text-white/70"><FiLogOut /></span>
+                  <span>{isLoggingOut ? "Logging out..." : "Logout"}</span>
+                </button>
               </nav>
             </div>
           </div>
@@ -98,26 +128,39 @@ const SupplierDashboardLayout = () => {
         {/* Header */}
         <header className="sticky top-0 z-40 flex items-center justify-between bg-white/95 backdrop-blur-sm border-b border-gray-200 px-8 py-4">
           <div className="flex items-center space-x-4">
-            <button onClick={toggleSidebar} className="text-gray-500 hover:text-blue-600 lg:hidden">
+            <button onClick={toggleSidebar} className="text-gray-500 hover:text-emerald-600 lg:hidden">
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
               </svg>
             </button>
             {/* Location Info */}
             <div className="flex items-center space-x-2 text-sm">
-              <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+              <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
               <span className="text-gray-600">Supplier Center</span>
             </div>
           </div>
           <div className="flex items-center space-x-4">
-            <div className="flex items-center space-x-1 bg-blue-50 px-3 py-1.5 rounded-lg">
-              <span className="text-blue-700 font-medium text-sm">S</span>
+            {/* Avatar */}
+            <div className="flex items-center space-x-1 bg-emerald-50 px-3 py-1.5 rounded-lg">
+              <span className="text-emerald-700 font-medium text-sm">{userInitial}</span>
             </div>
+            {/* Logout in header */}
+            <button
+              onClick={handleLogout}
+              disabled={isLoggingOut}
+              className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm border ${
+                isLoggingOut ? "bg-gray-100 text-gray-500 cursor-not-allowed" : "bg-white hover:bg-gray-50 text-gray-700"
+              }`}
+              title="Logout"
+            >
+              <FiLogOut />
+              {isLoggingOut ? "Logging out..." : "Logout"}
+            </button>
           </div>
         </header>
 
-        {/* Page Content with proper spacing */}
-        <main className="flex-1 overflow-y-auto p-8 bg-gradient-to-br from-blue-50 via-white to-orange-50">
+        {/* Page Content */}
+        <main className="flex-1 overflow-y-auto p-8 bg-gradient-to-br from-emerald-50 via-white to-green-50">
           <div className="max-w-7xl mx-auto">
             <Outlet />
           </div>

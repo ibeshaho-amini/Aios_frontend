@@ -375,9 +375,7 @@ const PredictionForm = () => {
             </div>
           </form>
         )}
-
-       
-
+      
         {/* RESULTS TAB */}
         {activeTab === "results" && (
           <div className="space-y-6">

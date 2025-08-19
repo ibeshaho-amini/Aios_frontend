@@ -124,7 +124,7 @@ const AgronomistDashboardLayout = () => {
               <SidebarItem name="Dashboard" icon={<FiHome />} path="/agronomist-dashboard/dashboard" />
               <SidebarItem name="Incoming Recommendations" icon={<FiInbox />} path="/agronomist-dashboard/agronomistInbox" />
               <SidebarItem name="My Reviews" icon={<FiCheckSquare />} path="/agronomist-dashboard/myReviews" />
-              <SidebarItem name="Reports & Analytics" icon={<FiBarChart2 />} path="/agronomist/reports" />
+              <SidebarItem name="Reports & Analytics" icon={<FiBarChart2 />} path="/agronomist-dashboard/agroAnalytic" />
             </nav>
 
             <div className="mt-8 pt-6 border-t border-white/20">

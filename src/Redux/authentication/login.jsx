@@ -6,32 +6,6 @@ import axiosInstance from '../axiosInstance';
 
 const API_BASE_URL = process.env.REACT_APP_API_BASE_URL;
 
-//
-// ========== ASYNC ACTIONS ==========
-//
-
-// ✅ Login Thunk
-// export const login = createAsyncThunk(
-//   'user/login',
-//   async ({ email, password }, { rejectWithValue }) => {
-//     try {
-//       const response = await axios.post(`${API_BASE_URL}/api/login/`, { email, password });
-//       const { access, refresh, user } = response.data;
-
-//       localStorage.setItem('accessToken', access);
-//       localStorage.setItem('refreshToken', refresh);
-//       localStorage.setItem('userInfo', JSON.stringify(user));
-//       localStorage.setItem('user_id', user.id);
-
-//       // Set default header for Axios instance
-//       axios.defaults.headers.common['Authorization'] = `Bearer ${access}`;
-
-//       return { access, refresh, user };
-//     } catch (error) {
-//       return rejectWithValue(error?.response?.data || { detail: 'Login failed' });
-//     }
-//   }
-// );
 
 // in your auth slice file
 export const login = createAsyncThunk(

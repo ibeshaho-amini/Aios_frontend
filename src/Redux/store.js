@@ -8,6 +8,7 @@ import orderReducer from './order/orderSlice'
 import cartReducer  from './order/cartSlice'
 import recommendReducer from './Recommendation/reviews'
 import farmerReducer from './farmer/farmerSlice'
+import usageReducer from './farmer/usageSlice'
 const store= configureStore({
 
     reducer:{
@@ -20,6 +21,7 @@ order:orderReducer,
 cart: cartReducer,
 recommend:recommendReducer,
 farmer: farmerReducer,
+usage: usageReducer,
 
     },
 

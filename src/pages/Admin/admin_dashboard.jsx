@@ -1,8 +1,9 @@
 "use client"
 
 import { useState } from "react"
-import { NavLink, Outlet, useLocation } from "react-router-dom"
+import { NavLink, Outlet, useLocation,useNavigate } from "react-router-dom"
 import { FaLeaf } from "react-icons/fa"
+import { useDispatch, useSelector } from "react-redux"
 import {
   FiHome,
   FiUsers,
@@ -12,7 +13,7 @@ import {
   FiSearch,
 //   FaLeaf,
 } from "react-icons/fi"
-
+import { logoutUser } from "../../Redux/authentication/login" 
 
 const SidebarItem = ({ name, icon, path }) => {
   const location = useLocation()
@@ -32,9 +33,28 @@ const SidebarItem = ({ name, icon, path }) => {
   )
 }
 
+
 const AdminDashboardLayout = () => {
   const [isSidebarOpen, setSidebarOpen] = useState(false)
   const toggleSidebar = () => setSidebarOpen(!isSidebarOpen)
+  const [isLoggingOut, setIsLoggingOut] = useState(false)
+  const navigate = useNavigate()
+  const location = useLocation()
+  const dispatch = useDispatch()
+
+
+   const handleLogout = async () => {
+    try {
+      setIsLoggingOut(true)
+      await dispatch(logoutUser()).unwrap()
+      navigate("/login")
+    } catch (err) {
+      // Optional: show toast
+      console.error("Logout failed:", err)
+    } finally {
+      setIsLoggingOut(false)
+    }
+  }
 
   return (
     <div className="flex h-screen bg-gradient-to-br from-green-200 via-lime-100 to-yellow-100">
@@ -74,7 +94,7 @@ const AdminDashboardLayout = () => {
               <SidebarItem name="Dashboard" icon={<FiHome />} path="/admin-dashboard/dashboard" />
               <SidebarItem name="User Management" icon={<FiUsers />} path="/admin-dashboard/users" />
               <SidebarItem name="Feedback" icon={<FiMessageCircle />} path="/admin/feedback" />
-              <SidebarItem name="Analytics" icon={<FiBarChart2 />} path="/admin/analytics" />
+              <SidebarItem name="Analytics" icon={<FiBarChart2 />} path="/admin-dashboard/adminAnalytics" />
               <SidebarItem name="Settings" icon={<FiSettings />} path="/admin/settings" />
             </nav>
           </div>

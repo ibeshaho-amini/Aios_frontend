@@ -127,18 +127,17 @@ const FarmerDashboardLayout = () => {
           <div className="flex-1 px-4 overflow-y-auto">
             <nav className="space-y-1">
               <SidebarItem name="Dashboard" icon={<FiHome />} path="/farmer-dashboard/overview" />
-              {/* removed trailing spaces from path */}
               <SidebarItem name="Farm Recommendation" icon={<FiDroplet />} path="/farmer-dashboard/recommendation" />
               <SidebarItem name="My Recommendations" icon={<FiCloud />} path="/farmer-dashboard/farmerRecommendations" />
               <SidebarItem name="Order" icon={<FiClipboard />} path="/farmer-dashboard/farmerOrder" />
               <SidebarItem name="Profile" icon={<FiUsers />} path="/farmer-dashboard/farmerProfile" />
               <SidebarItem name="Report & Analytics" icon={<FiBarChart2 />} path="/farmer-dashboard/reports" />
+               <SidebarItem name="Inputs Usage" icon={<FiBarChart2 />} path="/farmer-dashboard/usage" />
             </nav>
 
             <div className="mt-8 pt-6 border-t border-white/20">
               <nav className="space-y-1">
-                <SidebarItem name="Setting" icon={<FiSettings />} path="/farmer/settings" />
-                <SidebarItem name="Feedback" icon={<FiHelpCircle />} path="/farmer/support" />
+              
                 {/* Logout in sidebar */}
                 <button
                   onClick={handleLogout}

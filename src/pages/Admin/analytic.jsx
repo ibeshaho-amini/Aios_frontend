@@ -9,13 +9,13 @@ import {
   FiShoppingCart,
   FiTrendingUp,
   FiPieChart,
-  FiDownload,
 } from "react-icons/fi"
 
 import { fetchAllUsers } from "../../Redux/authentication/userSlice"
 import { fetchAllAgronomistRecommendations } from "../../Redux/Recommendation/reviews"
 import { fetchInbox } from "../../Redux/Recommendation/cropRecommendation"
 import axios from "../../Redux/axiosInstance"
+import ReportBuilder from "./reportComponent" 
 
 import {
   Chart as ChartJS,
@@ -30,10 +30,16 @@ import {
 } from "chart.js"
 import { Line, Doughnut, Bar } from "react-chartjs-2"
 
-import jsPDF from "jspdf"
-import autoTable from "jspdf-autotable"
-
-ChartJS.register(ArcElement, CategoryScale, LinearScale, PointElement, LineElement, BarElement, Tooltip, Legend)
+ChartJS.register(
+  ArcElement,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  BarElement,
+  Tooltip,
+  Legend
+)
 
 const roleColors = {
   admin: "bg-gray-200 text-gray-800",
@@ -78,21 +84,9 @@ const groupByDay = (arr, dateField, days = 7) => {
   return { labels, data: labels.map((l) => map[l]) }
 }
 
-const getPeriodRange = (period) => {
-  const end = new Date()
-  end.setHours(23, 59, 59, 999)
-  const start = new Date(end)
-  if (period === "monthly") start.setDate(start.getDate() - 30)
-  else start.setDate(start.getDate() - 7)
-  start.setHours(0, 0, 0, 0)
-  return { start, end }
-}
-
 export default function AdminAnalyticsDashboard() {
   const dispatch = useDispatch()
   const [days, setDays] = useState(7)
-  const [reportPeriod, setReportPeriod] = useState("weekly")
-  const [isGenerating, setIsGenerating] = useState(false)
 
   // Redux state
   const usersState = useSelector((s) => s.users || {})
@@ -142,11 +136,6 @@ export default function AdminAnalyticsDashboard() {
     }
   }, [dispatch])
 
-  // Map user id -> user (supports id or user_id fields)
-  const userMap = useMemo(() => {
-    return new Map((users || []).map((u) => [String(u.id ?? u.user_id), u]))
-  }, [users])
-
   // Derived metrics
   const roleCounts = useMemo(() => {
     return users.reduce(
@@ -170,7 +159,11 @@ export default function AdminAnalyticsDashboard() {
     )
   }, [recs])
 
-  const totalReviews = useMemo(() => recs.filter((r) => ["translated", "returned"].includes(r.status)).length, [recs])
+  const totalReviews = useMemo(
+    () => recs.filter((r) => ["translated", "returned"].includes(r.status)).length,
+    [recs]
+  )
+
   const newRecs = recStatusCounts.pending_review || 0
   const totalUsers = users.length
 
@@ -275,123 +268,6 @@ export default function AdminAnalyticsDashboard() {
     ],
   }
 
-  // PDF generator (Farmer resolved via user_id)
-  const handleDownloadReport = async () => {
-    if (!recs || recs.length === 0) return
-    setIsGenerating(true)
-
-    try {
-      const { start, end } = getPeriodRange(reportPeriod)
-      const periodLabel = reportPeriod === "monthly" ? "Monthly" : "Weekly"
-      const startLabel = start.toLocaleDateString()
-      const endLabel = end.toLocaleDateString()
-
-      const inRangeRecs = recs.filter((r) => {
-        const created = toDate(r.timestamp || r.created_at)
-        return created && created >= start && created <= end
-      })
-
-      const rows = inRangeRecs.map((r, i) => {
-        // Farmer id from user_id (with safe fallbacks)
-        const farmerId =
-          r.user_id ??
-          r.farmer_user_id ??
-          (typeof r.user === "object" ? r.user?.id : r.user) ??
-          r.farmer_id ??
-          r.farmer?.id
-
-        const farmerUser = farmerId ? userMap.get(String(farmerId)) : null
-        const farmerName =
-          farmerUser?.username || farmerUser?.full_name || farmerUser?.email || (farmerId ? `User #${farmerId}` : "Unknown")
-
-        // Reviewer (agronomist)
-        const agronomistId = r.agronomist_id ?? r.reviewer_id ?? r.agronomist?.id
-        const agronomistUser = agronomistId ? userMap.get(String(agronomistId)) : null
-        const agronomistName = r.agronomist_username || agronomistUser?.username || (agronomistId ? `User #${agronomistId}` : "—")
-
-        const reviewedAt = toDate(r.reviewed_at || r.updated_at) || null
-        const createdAt = toDate(r.timestamp || r.created_at) || null
-        const crop = r.crop_predicted || r.ai_outputs?.crop_predicted || "—"
-
-        return {
-          i: i + 1,
-          farmer: farmerName,
-          crop,
-          status: r.status || "unknown",
-          reviewedBy: agronomistName,
-          reviewedAt: reviewedAt ? reviewedAt.toLocaleString() : "—",
-          createdAt: createdAt ? createdAt.toLocaleString() : "—",
-        }
-      })
-
-      const doc = new jsPDF({ unit: "pt", format: "a4" })
-      const pageWidth = doc.internal.pageSize.getWidth()
-      const pageHeight = doc.internal.pageSize.getHeight()
-      const marginLeft = 40
-      const headerHeight = 90
-
-      doc.setProperties({
-        title: `${SYSTEM_NAME} - ${periodLabel} Input Recommendation Report`,
-        subject: "System Activity Report",
-        creator: SYSTEM_NAME,
-      })
-
-      if (rows.length === 0) {
-        doc.setTextColor(40)
-        doc.setFontSize(16)
-        doc.text(`${SYSTEM_NAME} — ${periodLabel} Input Recommendation Report`, marginLeft, 38)
-        doc.setFontSize(10)
-        doc.text(`Generated: ${new Date().toLocaleString()}`, marginLeft, 58)
-        doc.text(`Period: ${startLabel} - ${endLabel}`, marginLeft, 72)
-        doc.setFontSize(12)
-        doc.text(`No recommendations found for the selected period.`, marginLeft, 120)
-        const fileNameEmpty = `${SYSTEM_NAME}_${periodLabel}_Report_${fmtDay(new Date()).replace(/-/g, "")}.pdf`
-        doc.save(fileNameEmpty)
-        return
-      }
-
-      autoTable(doc, {
-        columns: [
-          { header: "#", dataKey: "i" },
-          { header: "Farmer", dataKey: "farmer" },
-          { header: "Crop", dataKey: "crop" },
-          { header: "Status", dataKey: "status" },
-          { header: "Reviewed By", dataKey: "reviewedBy" },
-          { header: "Created At", dataKey: "createdAt" },
-        ],
-        body: rows,
-        startY: headerHeight,
-        margin: { top: headerHeight + 10, bottom: 40, left: marginLeft, right: marginLeft },
-        styles: { fontSize: 9 },
-        headStyles: { fillColor: [34, 197, 94] },
-        didDrawPage: (data) => {
-          // Header separator
-          doc.setDrawColor(230)
-          doc.line(marginLeft, headerHeight - 12, pageWidth - marginLeft, headerHeight - 12)
-
-          // Title + meta
-          doc.setTextColor(40)
-          doc.setFontSize(16)
-          doc.text(`${SYSTEM_NAME} — ${periodLabel} Input Recommendation Report`, marginLeft, 38)
-
-          doc.setFontSize(10)
-          doc.text(`Generated: ${new Date().toLocaleString()}`, marginLeft, 58)
-          doc.text(`Period: ${startLabel} - ${endLabel}`, marginLeft, 72)
-
-          // Footer page number
-          doc.setFontSize(9)
-          doc.setTextColor(120)
-          doc.text(`Page ${data.pageNumber}`, pageWidth - marginLeft - 40, pageHeight - 20)
-        },
-      })
-
-      const fileName = `${SYSTEM_NAME}_${periodLabel}_Report_${fmtDay(new Date()).replace(/-/g, "")}.pdf`
-      doc.save(fileName)
-    } finally {
-      setIsGenerating(false)
-    }
-  }
-
   return (
     <div className="max-w-7xl mx-auto p-6 space-y-6">
       <div className="flex items-center justify-between">
@@ -399,11 +275,8 @@ export default function AdminAnalyticsDashboard() {
           <FiTrendingUp className="text-green-600" /> Admin Analytics
         </h1>
 
-        <div className="flex items-center gap-3 flex-wrap justify-end">
-          <span className="text-sm font-medium text-gray-700">Get Input Recommendation Report</span>
-
-          {/* Chart range */}
-          <label className="text-sm text-gray-600">Range:</label>
+        <div className="flex items-center gap-2">
+          <label className="text-sm text-gray-600">Chart Range:</label>
           <select
             value={days}
             onChange={(e) => setDays(Number(e.target.value))}
@@ -413,28 +286,6 @@ export default function AdminAnalyticsDashboard() {
             <option value={14}>Last 14 days</option>
             <option value={30}>Last 30 days</option>
           </select>
-
-          {/* Report controls */}
-          <div className="h-6 w-px bg-gray-200" />
-          <label className="text-sm text-gray-600">Report:</label>
-          <select
-            value={reportPeriod}
-            onChange={(e) => setReportPeriod(e.target.value)}
-            className="border border-gray-300 px-3 py-2 rounded-lg text-sm"
-          >
-            <option value="weekly">Weekly</option>
-            <option value="monthly">Monthly</option>
-          </select>
-
-          <button
-            onClick={handleDownloadReport}
-            disabled={!recs?.length || isGenerating || users.length === 0}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700 disabled:opacity-50"
-            title="Get Input Recommendation Report"
-          >
-            <FiDownload />
-            {isGenerating ? "Generating…" : "Get Input Recommendation Report"}
-          </button>
         </div>
       </div>
 
@@ -513,7 +364,7 @@ export default function AdminAnalyticsDashboard() {
               </thead>
               <tbody>
                 {topAgronomists.slice(0, 8).map((a, idx) => (
-                  <tr key={a.name} className="border-t hover:bg-green-50 transition">
+                  <tr key={`${a.name}-${idx}`} className="border-t hover:bg-green-50 transition">
                     <td className="py-2 px-3">{idx + 1}</td>
                     <td className="py-2 px-3">{a.name}</td>
                     <td className="py-2 px-3">{a.count}</td>
@@ -524,6 +375,9 @@ export default function AdminAnalyticsDashboard() {
           </div>
         )}
       </div>
+
+      {/* Report Builder Section */}
+      <ReportBuilder recs={recs} users={users} systemName={SYSTEM_NAME} />
     </div>
   )
 }

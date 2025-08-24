@@ -29,12 +29,53 @@ function getISOWeekInfo(dateUTC) {
   return { isoYear: d.getUTCFullYear(), isoWeek: week }
 }
 
+// Load an image and return a base64 dataURL (for reliable PDF embedding)
+function loadImageAsDataURL(src) {
+  return new Promise((resolve) => {
+    if (!src) return resolve(null)
+    try {
+      const img = new Image()
+      img.crossOrigin = "anonymous"
+      img.onload = () => {
+        try {
+          const canvas = document.createElement("canvas")
+          const ctx = canvas.getContext("2d")
+          canvas.width = img.width
+          canvas.height = img.height
+          ctx.drawImage(img, 0, 0)
+          const dataUrl = canvas.toDataURL("image/png")
+          resolve(dataUrl)
+        } catch (e) {
+          console.warn("Failed to convert logo to dataURL:", e)
+          resolve(null)
+        }
+      }
+      img.onerror = () => {
+        console.warn("Failed to load logo image:", src)
+        resolve(null)
+      }
+      img.src = src
+    } catch (e) {
+      console.warn("Error loading logo:", e)
+      resolve(null)
+    }
+  })
+}
+
+const typeLabels = {
+  fertilizer: "Fertilizer",
+  pesticide: "Pesticide",
+  seed: "Seed",
+}
+
 export default function UsageReportBuilder({
   usages = [],
   seasons = ["Season A", "Season B", "Season C"],
-  years,                 // optional: pass [2025, 2024, ...]; if omitted, inferred from data
-  systemName = "AIOS",
-  currency = "",         // e.g., "KES", "$", "UGX"
+  years,                        // optional: pass [2025, 2024, ...]; if omitted, inferred from data
+  systemName = "IMBARAGA FARMERS ORGANIZATION",
+  currency = "",                // e.g., "KES", "$", "UGX"
+  users = [],                   // to resolve current user name by user_id from localStorage
+  logoPath = "/logo.png",       // logo path (same-origin or CORS-enabled)
 }) {
   // Build selects from data if not provided
   const availableYears = useMemo(() => {
@@ -42,6 +83,35 @@ export default function UsageReportBuilder({
     const set = new Set(usages.filter(u => u.season_year != null).map(u => Number(u.season_year)))
     return Array.from(set).sort((a, b) => b - a)
   }, [years, usages])
+
+  // Map of users
+  const userMap = useMemo(() => new Map((users || []).map((u) => [String(u.id ?? u.user_id), u])), [users])
+
+  // Derive current user from localStorage (to show as "Prepared by")
+  const currentUser = useMemo(() => {
+    if (typeof window === "undefined") return null
+    try {
+      const userId = localStorage.getItem("user_id")
+      if (userId) {
+        const user = users.find(u => String(u.id ?? u.user_id) === String(userId))
+        if (user) return user
+      }
+      const stored = localStorage.getItem("auth_user") || localStorage.getItem("user")
+      if (stored) {
+        try { return JSON.parse(stored) } catch {}
+      }
+      return null
+    } catch {
+      return null
+    }
+  }, [users])
+
+  const generatedBy =
+    currentUser?.username ||
+    currentUser?.full_name ||
+    currentUser?.name ||
+    currentUser?.email ||
+    "System User"
 
   // Filters
   const [period, setPeriod] = useState("month") // "month" | "week"
@@ -106,6 +176,15 @@ export default function UsageReportBuilder({
     )
   }, [rows])
 
+  // Dynamically choose which breakdown columns to show:
+  // - If showBreakdown = false => no breakdown columns.
+  // - If inputType is chosen => only that one column.
+  // - Otherwise => all three columns.
+  const breakdownColumns = useMemo(() => {
+    if (!showBreakdown) return []
+    return inputType ? [inputType] : ["fertilizer", "pesticide", "seed"]
+  }, [showBreakdown, inputType])
+
   const resetFilters = () => {
     setPeriod("month")
     setSeasonYear("")
@@ -123,9 +202,12 @@ export default function UsageReportBuilder({
     try {
       const doc = new jsPDF({ unit: "pt", format: "a4" })
       const marginLeft = 40
-      const headerHeight = 90
+      const headerHeight = 120 // room for logo + header
       const pageWidth = doc.internal.pageSize.getWidth()
       const pageHeight = doc.internal.pageSize.getHeight()
+
+      // Load logo as base64 for reliable embedding
+      const logoDataURL = await loadImageAsDataURL(logoPath)
 
       // Build filters line
       const periodPhrase = period === "month" ? "Monthly" : "Weekly"
@@ -149,19 +231,13 @@ export default function UsageReportBuilder({
       const qPhrase = query ? `matching "${query}"` : "no text filter"
       const filtersLine = `${periodPhrase} report ${seasonPhrase}, ${typePhrase}, ${datePhrase}, ${qPhrase}`
 
-      // Columns
+      // Columns (dynamic breakdown)
       const columns = [
         { header: "Period", dataKey: "period" },
+        ...breakdownColumns.map((t) => ({ header: typeLabels[t] || t, dataKey: t })),
         { header: "Total Spent", dataKey: "totalSpent" },
         { header: "Applications", dataKey: "count" },
       ]
-      if (showBreakdown) {
-        columns.splice(2, 0,
-          { header: "Fertilizer", dataKey: "fertilizer" },
-          { header: "Pesticide", dataKey: "pesticide" },
-          { header: "Seed", dataKey: "seed" },
-        )
-      }
 
       const body = rows.map((r) => {
         const base = {
@@ -169,59 +245,72 @@ export default function UsageReportBuilder({
           totalSpent: formatMoney(r.totalCost, currency),
           count: r.count,
         }
-        if (showBreakdown) {
-          base.fertilizer = formatMoney(r.byType.fertilizer, currency)
-          base.pesticide = formatMoney(r.byType.pesticide, currency)
-          base.seed = formatMoney(r.byType.seed, currency)
-        }
+        breakdownColumns.forEach((t) => {
+          base[t] = formatMoney(r.byType[t] || 0, currency)
+        })
         return base
       })
 
       // Add a total row
-      body.push({
+      const totalRow = {
         period: "TOTAL",
         totalSpent: formatMoney(totals.totalCost, currency),
-        ...(showBreakdown
-          ? {
-              fertilizer: formatMoney(totals.byType.fertilizer, currency),
-              pesticide: formatMoney(totals.byType.pesticide, currency),
-              seed: formatMoney(totals.byType.seed, currency),
-            }
-          : {}),
         count: totals.count,
+      }
+      breakdownColumns.forEach((t) => {
+        totalRow[t] = formatMoney(totals.byType[t] || 0, currency)
       })
+      body.push(totalRow)
 
       doc.setProperties({
-        title: `${systemName} — Inputs Usage Report`,
+        title: `${systemName} - Inputs Usage Report`,
         subject: "Inputs usage (cost) report",
         creator: systemName,
+        author: generatedBy,
       })
+
+      // First page logo
+      if (logoDataURL) {
+        doc.addImage(logoDataURL, "PNG", marginLeft, 20, 50, 50)
+      }
 
       autoTable(doc, {
         columns,
         body,
         startY: headerHeight,
         margin: { top: headerHeight + 10, bottom: 40, left: marginLeft, right: marginLeft },
-        styles: { fontSize: 9 },
-        headStyles: { fillColor: [34, 197, 94] }, // emerald-500
+        theme: "grid",
+        styles: { fontSize: 9, lineColor: [0, 0, 0], lineWidth: 0.5 },
+        headStyles: { fillColor: [255, 255, 255], textColor: 20 },
         didDrawPage: (data) => {
+          if (data.pageNumber > 1 && logoDataURL) {
+            doc.addImage(logoDataURL, "PNG", marginLeft, 20, 40, 40)
+          }
+
+          const logoWidth = logoDataURL ? 60 : 0
+          const textStartX = marginLeft + (logoDataURL ? logoWidth + 15 : 0)
+
           // Header
           doc.setDrawColor(230)
           doc.line(marginLeft, headerHeight - 12, pageWidth - marginLeft, headerHeight - 12)
           doc.setTextColor(40)
           doc.setFontSize(16)
-          doc.text(`${systemName} — Inputs Usage Report`, marginLeft, 38)
+          doc.text(`${systemName}`, textStartX || marginLeft, 38)
+          doc.setFontSize(12)
+          doc.text(`Inputs Usage Report`, textStartX || marginLeft, 55)
           doc.setFontSize(10)
-          doc.text(`Generated: ${new Date().toLocaleString()}`, marginLeft, 58)
+          doc.text(`Generated: ${new Date().toLocaleString()}`, textStartX || marginLeft, 72)
+          doc.text(`Prepared by: ${generatedBy}`, textStartX || marginLeft, 86)
 
-          // Filters line (wrap)
-          const wrapped = doc.splitTextToSize(filtersLine, pageWidth - marginLeft * 2)
-          doc.text(wrapped, marginLeft, 72)
+          // Filters line (wrap within available width)
+          const availableWidth = pageWidth - (textStartX || marginLeft) - marginLeft
+          const wrapped = doc.splitTextToSize(filtersLine, availableWidth)
+          doc.text(wrapped, textStartX || marginLeft, 104)
 
           // Footer
           doc.setFontSize(9)
           doc.setTextColor(120)
-          doc.text(`Page ${data.pageNumber}`, pageWidth - marginLeft - 40, pageHeight - 20)
+          doc.text(`Page ${data.pageNumber}`, pageWidth - marginLeft - 30, pageHeight - 20)
         },
       })
 
@@ -231,23 +320,40 @@ export default function UsageReportBuilder({
       const sd = startDate ? startDate.replace(/-/g, "") : "ALL"
       const ed = endDate ? endDate.replace(/-/g, "") : "ALL"
       const it = inputType ? inputType.toUpperCase() : "ALL"
-      const fileName = `${systemName}_Inputs_${per}_${yr}_${sn}_${it}_${sd}_${ed}.pdf`
+      const fileName = `${systemName.replace(/\s+/g, "_")}_Inputs_${per}_${yr}_${sn}_${it}_${sd}_${ed}.pdf`
       doc.save(fileName)
     } finally {
       setIsGenerating(false)
     }
   }
 
+  // Dynamic column count for "No data" message
+  const colCount = 1 + breakdownColumns.length + 2 // Period + breakdown + Total + Applications
+
   return (
     <div className="bg-white rounded-xl shadow p-4 space-y-4">
+      {/* Header with logo */}
       <div className="flex items-center justify-between">
-        <h3 className="font-semibold text-gray-800 flex items-center gap-2">
-          <FiFilter /> Build Inputs Usage Report
-        </h3>
-        <div className="text-sm text-gray-500">
-          Periods: <span className="font-medium text-gray-700">{rows.length}</span>
-          <span className="mx-2 text-gray-300">|</span>
-          Records: <span className="font-medium text-gray-700">{filteredRecords.length}</span>
+        <div className="flex items-center gap-3">
+          <img
+            src={logoPath}
+            alt={`${systemName} Logo`}
+            className="w-8 h-8 object-contain"
+            onError={(e) => {
+              e.target.style.display = "none"
+            }}
+          />
+          <h3 className="font-semibold text-gray-800 flex items-center gap-2">
+            <FiFilter /> Build Inputs Usage Report
+          </h3>
+        </div>
+        <div className="text-right text-sm text-gray-500">
+          <div>
+            Periods: <span className="font-medium text-gray-700">{rows.length}</span>
+            <span className="mx-2 text-gray-300">|</span>
+            Records: <span className="font-medium text-gray-700">{filteredRecords.length}</span>
+          </div>
+          <div className="mt-0.5 text-gray-600">Prepared by: <span className="text-gray-800">{generatedBy}</span></div>
         </div>
       </div>
 
@@ -380,15 +486,15 @@ export default function UsageReportBuilder({
         </button>
       </div>
 
-      {/* Table (shown by default) */}
+      {/* Table */}
       <div className="overflow-x-auto">
         <table className="min-w-full text-sm border border-gray-200 rounded">
           <thead>
             <tr className="bg-gray-50">
               <th className="py-2 px-3 text-left">Period</th>
-              {showBreakdown && <th className="py-2 px-3 text-left">Fertilizer</th>}
-              {showBreakdown && <th className="py-2 px-3 text-left">Pesticide</th>}
-              {showBreakdown && <th className="py-2 px-3 text-left">Seed</th>}
+              {breakdownColumns.map((t) => (
+                <th key={t} className="py-2 px-3 text-left">{typeLabels[t] || t}</th>
+              ))}
               <th className="py-2 px-3 text-left">Total Spent</th>
               <th className="py-2 px-3 text-left">Applications</th>
             </tr>
@@ -396,7 +502,7 @@ export default function UsageReportBuilder({
           <tbody>
             {rows.length === 0 ? (
               <tr>
-                <td className="py-4 px-3 text-gray-500" colSpan={showBreakdown ? 5 : 3}>
+                <td className="py-4 px-3 text-gray-500" colSpan={colCount}>
                   No data for the selected filters.
                 </td>
               </tr>
@@ -404,9 +510,9 @@ export default function UsageReportBuilder({
               rows.map((r) => (
                 <tr key={r.key} className="border-t hover:bg-green-50 transition">
                   <td className="py-2 px-3">{r.label}</td>
-                  {showBreakdown && <td className="py-2 px-3">{formatMoney(r.byType.fertilizer, currency)}</td>}
-                  {showBreakdown && <td className="py-2 px-3">{formatMoney(r.byType.pesticide, currency)}</td>}
-                  {showBreakdown && <td className="py-2 px-3">{formatMoney(r.byType.seed, currency)}</td>}
+                  {breakdownColumns.map((t) => (
+                    <td key={t} className="py-2 px-3">{formatMoney(r.byType[t] || 0, currency)}</td>
+                  ))}
                   <td className="py-2 px-3 font-medium">{formatMoney(r.totalCost, currency)}</td>
                   <td className="py-2 px-3">{r.count}</td>
                 </tr>
@@ -417,9 +523,9 @@ export default function UsageReportBuilder({
             <tfoot>
               <tr className="bg-gray-50 border-t">
                 <th className="py-2 px-3 text-left">TOTAL</th>
-                {showBreakdown && <th className="py-2 px-3 text-left">{formatMoney(totals.byType.fertilizer, currency)}</th>}
-                {showBreakdown && <th className="py-2 px-3 text-left">{formatMoney(totals.byType.pesticide, currency)}</th>}
-                {showBreakdown && <th className="py-2 px-3 text-left">{formatMoney(totals.byType.seed, currency)}</th>}
+                {breakdownColumns.map((t) => (
+                  <th key={t} className="py-2 px-3 text-left">{formatMoney(totals.byType[t] || 0, currency)}</th>
+                ))}
                 <th className="py-2 px-3 text-left">{formatMoney(totals.totalCost, currency)}</th>
                 <th className="py-2 px-3 text-left">{totals.count}</th>
               </tr>

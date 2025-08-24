@@ -27,6 +27,8 @@ import AgroAnalytic from './pages/agronomist/analytics'
 import AdminAnalytics from './pages/Admin/analytic'
 import LeaderDashboard from './pages/leader/dashboard'
 import Usage from './pages/farmer/farmer _usage'
+import ManageFarmer from './pages/leader/manageFarmer'
+import Feedback from './pages/farmer/feedback'
 function App() {
   return (
       <Router>
@@ -48,6 +50,7 @@ function App() {
                         <Route path="farmerRecommendations" element={<FarmerRecommendations/>}/>
                         <Route path="farmerProfile" element={<FarmerProfile/>}/>
                         <Route path="usage" element={<Usage/>}/>
+                        <Route path="feedback" element={<Feedback/>}/>
                     </Route>
 
                 {/* suplier routes */}
@@ -66,7 +69,7 @@ function App() {
                 <Route index element={<AdminHome />}/>
                     <Route path="users" element={<UserManagement />} />
                     <Route path="products" element={<Products/>}/>
-                    <Route path="adminAnalytics" element={<AdminAnalytics/>}/>s
+                    <Route path="adminAnalytics" element={<AdminAnalytics/>}/>
                     
                 </Route>
 
@@ -82,6 +85,7 @@ function App() {
                   <Route path="/leader-dashboard" element={<LeaderDashboard />}>
 
                     <Route index element={<AgroOverview />}/>
+                     <Route path="manageFarmer" element={<ManageFarmer/>}/>
                   
                   </Route>
 

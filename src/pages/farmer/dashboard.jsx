@@ -132,7 +132,8 @@ const FarmerDashboardLayout = () => {
               <SidebarItem name="Order" icon={<FiClipboard />} path="/farmer-dashboard/farmerOrder" />
               <SidebarItem name="Profile" icon={<FiUsers />} path="/farmer-dashboard/farmerProfile" />
               <SidebarItem name="Report & Analytics" icon={<FiBarChart2 />} path="/farmer-dashboard/reports" />
-               <SidebarItem name="Inputs Usage" icon={<FiBarChart2 />} path="/farmer-dashboard/usage" />
+              <SidebarItem name="Inputs Usage" icon={<FiBarChart2 />} path="/farmer-dashboard/usage" />
+              <SidebarItem name=" Feedback" icon={<FiHelpCircle />} path="/farmer-dashboard/feedback" />
             </nav>
 
             <div className="mt-8 pt-6 border-t border-white/20">

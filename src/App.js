@@ -9,7 +9,7 @@ import SupplierDashboardLayout from './pages/supplier/supplier_dashboard';
 import Profile from './pages/supplier/supplier_profile';
 import Products from './pages/supplier/supplier_product';
 import AdminDashboardLayouts from './pages/Admin/admin_dashboard';
-import AdminHome from './pages/Admin/overview';
+import Adminoverview from './pages/Admin/overview';
 import FarmOverview from './pages/farmer/farmer-overview';
 import SupplierOverview from './pages/supplier/supp-overview';
 import UserManagement from './pages/Admin/user_management';
@@ -67,7 +67,8 @@ function App() {
                 {/* admin routes */}
 
                 <Route path="/admin-dashboard" element={<AdminDashboardLayouts />}>
-                <Route index element={<AdminHome />}/>
+                    <Route index element={<Adminoverview />}/>
+                    <Route path="adminoverview" element={<Adminoverview/>}/>
                     <Route path="users" element={<UserManagement />} />
                     <Route path="products" element={<Products/>}/>
                     <Route path="adminAnalytics" element={<AdminAnalytics/>}/>

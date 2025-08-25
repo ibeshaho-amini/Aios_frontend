@@ -29,6 +29,7 @@ import LeaderDashboard from './pages/leader/dashboard'
 import Usage from './pages/farmer/farmer _usage'
 import ManageFarmer from './pages/leader/manageFarmer'
 import Feedback from './pages/farmer/feedback'
+import AdminFeedback from './pages/Admin/adminFeedback'
 function App() {
   return (
       <Router>
@@ -70,6 +71,7 @@ function App() {
                     <Route path="users" element={<UserManagement />} />
                     <Route path="products" element={<Products/>}/>
                     <Route path="adminAnalytics" element={<AdminAnalytics/>}/>
+                    <Route path="adminFeedback" element ={<AdminFeedback/>}/>
                     
                 </Route>
 

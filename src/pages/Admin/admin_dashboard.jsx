@@ -93,7 +93,7 @@ const AdminDashboardLayout = () => {
             <nav className="space-y-1">
               <SidebarItem name="Dashboard" icon={<FiHome />} path="/admin-dashboard/dashboard" />
               <SidebarItem name="User Management" icon={<FiUsers />} path="/admin-dashboard/users" />
-              <SidebarItem name="Feedback" icon={<FiMessageCircle />} path="/admin/feedback" />
+              <SidebarItem name="Feedback" icon={<FiMessageCircle />} path="/admin-dashboard/adminFeedback" />
               <SidebarItem name="Analytics" icon={<FiBarChart2 />} path="/admin-dashboard/adminAnalytics" />
               <SidebarItem name="Settings" icon={<FiSettings />} path="/admin/settings" />
             </nav>

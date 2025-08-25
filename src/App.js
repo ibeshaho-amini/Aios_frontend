@@ -30,6 +30,7 @@ import Usage from './pages/farmer/farmer _usage'
 import ManageFarmer from './pages/leader/manageFarmer'
 import Feedback from './pages/farmer/feedback'
 import AdminFeedback from './pages/Admin/adminFeedback'
+import LeaderOverview from './pages/leader/overview'
 function App() {
   return (
       <Router>
@@ -68,7 +69,7 @@ function App() {
 
                 <Route path="/admin-dashboard" element={<AdminDashboardLayouts />}>
                     <Route index element={<Adminoverview />}/>
-                    <Route path="adminoverview" element={<Adminoverview/>}/>
+                    {/* <Route path="adoverview" element={<Adminoverview/>}/> */}
                     <Route path="users" element={<UserManagement />} />
                     <Route path="products" element={<Products/>}/>
                     <Route path="adminAnalytics" element={<AdminAnalytics/>}/>
@@ -87,7 +88,8 @@ function App() {
 
                   <Route path="/leader-dashboard" element={<LeaderDashboard />}>
 
-                    <Route index element={<AgroOverview />}/>
+                    <Route index element={<LeaderOverview />}/>
+                    <Route path="leaderOverview" element ={<LeaderOverview/>}/>
                      <Route path="manageFarmer" element={<ManageFarmer/>}/>
                   
                   </Route>

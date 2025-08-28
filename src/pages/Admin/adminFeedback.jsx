@@ -451,13 +451,7 @@ export default function AdminFeedbackPage() {
                       >
                         {isUpdating ? "Saving…" : "Save"}
                       </button>
-                      <button
-                        onClick={onDelete}
-                        disabled={isDeleting}
-                        className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border text-red-600 hover:bg-red-50 disabled:opacity-50"
-                      >
-                        <FiTrash2 /> {isDeleting ? "Deleting…" : "Delete"}
-                      </button>
+                    
                     </div>
                   </div>
                 </>

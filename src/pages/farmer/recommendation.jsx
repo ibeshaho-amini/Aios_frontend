@@ -527,7 +527,7 @@ const StableField = memo(({
         value={value}
         onChange={onChange}
         inputMode={inputMode}
-        pattern={pattern}
+        // pattern={pattern}
         placeholder={placeholder}
         className={`w-full pr-16 pl-3 py-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 border-gray-200 ${error ? "border-red-300" : ""}`}
       />
@@ -737,8 +737,8 @@ const PredictionForm = () => {
                   value={formData.ph_value} 
                   onChange={handleFieldChange} 
                   error={formErrors.ph_value} 
-                  inputMode="decimal" 
-                  pattern="^-?\d*\\.?\\d*$" 
+                  // inputMode="decmal" 
+                  // pattern="^-?\d*\\.?\\d*$" 
                 />
                 <StableField 
                   label={L.fields.moisture}
@@ -747,7 +747,7 @@ const PredictionForm = () => {
                   onChange={handleFieldChange} 
                   error={formErrors.moisture} 
                   inputMode="decimal" 
-                  pattern="^\\d*\\.?\\d*$" 
+                  // pattern="^\\d*\\.?\\d*$" 
                   right="%" 
                 />
               </div>
@@ -769,7 +769,7 @@ const PredictionForm = () => {
                   onChange={handleFieldChange} 
                   error={formErrors.nitrogen} 
                   inputMode="decimal" 
-                  pattern="^\\d*\\.?\\d*$" 
+                  // pattern="^\\d*\\.?\\d*$" 
                 />
                 <StableField 
                   label={L.fields.phosphorous}
@@ -778,7 +778,7 @@ const PredictionForm = () => {
                   onChange={handleFieldChange} 
                   error={formErrors.phosphorous} 
                   inputMode="decimal" 
-                  pattern="^\\d*\\.?\\d*$" 
+                  // pattern="^\\d*\\.?\\d*$" 
                 />
                 <StableField 
                   label={L.fields.potassium}
@@ -787,7 +787,7 @@ const PredictionForm = () => {
                   onChange={handleFieldChange} 
                   error={formErrors.potassium} 
                   inputMode="decimal" 
-                  pattern="^\\d*\\.?\\d*$" 
+                  // pattern="^\\d*\\.?\\d*$" 
                 />
               </div>
             </div>
@@ -808,7 +808,7 @@ const PredictionForm = () => {
                   onChange={handleFieldChange} 
                   error={formErrors.temperature} 
                   inputMode="decimal" 
-                  pattern="^-?\\d*\\.?\\d*$" 
+                  // pattern="^-?\\d*\\.?\\d*$" 
                   right="°C" 
                 />
                 <StableField 
@@ -818,7 +818,7 @@ const PredictionForm = () => {
                   onChange={handleFieldChange} 
                   error={formErrors.humidity} 
                   inputMode="decimal" 
-                  pattern="^\\d*\\.?\\d*$" 
+                  // pattern="^\\d*\\.?\\d*$" 
                   right="%" 
                 />
                 <StableField 
@@ -828,7 +828,7 @@ const PredictionForm = () => {
                   onChange={handleFieldChange} 
                   error={formErrors.rainfall} 
                   inputMode="decimal" 
-                  pattern="^\\d*\\.?\\d*$" 
+                  // pattern="^\\d*\\.?\\d*$" 
                   right="mm" 
                 />
               </div>

@@ -227,13 +227,8 @@ const FarmerRecommendations = () => {
                   </div>
 
                   <div className="flex gap-2">
-                    {/* Always allow Details (page) */}
-                    <button
-                      onClick={() => navigate(`/recommendations/${rec.id}`)}
-                      className="text-blue-600 hover:text-blue-800 flex items-center gap-1"
-                    >
-                      <FiEye /> Details
-                    </button>
+                   
+                  
                     {/* Report only for reviewed */}
                     {isReviewed && (
                       <button

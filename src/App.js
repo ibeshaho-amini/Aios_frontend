@@ -31,6 +31,7 @@ import ManageFarmer from './pages/leader/manageFarmer'
 import Feedback from './pages/farmer/feedback'
 import AdminFeedback from './pages/Admin/adminFeedback'
 import LeaderOverview from './pages/leader/overview'
+import LeaderReport from './pages/leader/report'
 function App() {
   return (
       <Router>
@@ -40,7 +41,7 @@ function App() {
                     <Route path="/" element={<HomePage />} />
                     <Route path="/login" element={<Login />} />
                     <Route path="/signup" element={<Signup />} />
-                    <Route path ="/market" element={<Market/>}/>
+                
 
                       {/* farmer routes */}
                     <Route path="/farmer-dashboard" element={<FarmerDashboardLayout />}>
@@ -53,6 +54,7 @@ function App() {
                         <Route path="farmerProfile" element={<FarmerProfile/>}/>
                         <Route path="usage" element={<Usage/>}/>
                         <Route path="feedback" element={<Feedback/>}/>
+                        <Route path ="market" element={<Market/>}/>
                     </Route>
 
                 {/* suplier routes */}
@@ -91,6 +93,7 @@ function App() {
                     <Route index element={<LeaderOverview />}/>
                     <Route path="leaderOverview" element ={<LeaderOverview/>}/>
                      <Route path="manageFarmer" element={<ManageFarmer/>}/>
+                     <Route path="leaderReport" element={<LeaderReport/>}/>
                   
                   </Route>
 

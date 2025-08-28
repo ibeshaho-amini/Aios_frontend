@@ -118,15 +118,15 @@ const LeaderDashboardLayout = () => {
           {/* Navigation */}
           <div className="flex-1 px-4 overflow-y-auto">
             <nav className="space-y-1">
-              <SidebarItem name="Dashboard" icon={<FiHome />} path="/leader/dashboard" />
+              <SidebarItem name="Dashboard" icon={<FiHome />} path="/leader-dashboard/leaderOverview" />
               <SidebarItem name="Manage Farmers" icon={<FiUsers />} path="/leader-dashboard/manageFarmer" />
-              <SidebarItem name="Reports & Analytics" icon={<FiBarChart2 />} path="/leader-dashboard/reports" />
+              <SidebarItem name="Reports & Analytics" icon={<FiBarChart2 />} path="/leader-dashboard/leaderReport" />
             </nav>
 
             <div className="mt-8 pt-6 border-t border-white/20">
               <nav className="space-y-1">
-                <SidebarItem name="Settings" icon={<FiSettings />} path="/leader/settings" />
-                <SidebarItem name="Support" icon={<FiHelpCircle />} path="/leader/support" />
+              
+           
                 <button
                   onClick={handleLogout}
                   className="w-full flex items-center gap-3 py-3 px-3 text-sm rounded-lg transition-all duration-200 text-white/80 hover:bg-white/10 hover:text-white"

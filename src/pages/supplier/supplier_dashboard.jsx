@@ -101,13 +101,12 @@ const SupplierDashboardLayout = () => {
               <SidebarItem name="Products" icon={<FiBox />} path="/supplier-dashboard/products" />
               <SidebarItem name="Orders" icon={<FiShoppingCart />} path="/supplier-dashboard/suppOrders" />
               <SidebarItem name="Analytics" icon={<FiBarChart2 />} path="/supplier-dashboard/supAnalytics" />
-              <SidebarItem name="Feedback" icon={<FiMessageCircle />} path="/supplier-dashboard/feedback" />
             </nav>
 
             <div className="mt-8 pt-6 border-t border-white/20">
               <nav className="space-y-1">
                 <SidebarItem name="Profile" icon={<FiSettings />} path="/supplier-dashboard/profile" />
-                <SidebarItem name="Help & Support" icon={<FiHelpCircle />} path="/supplier-dashboard/support" />
+                
                 {/* Logout in sidebar */}
                 <button
                   onClick={handleLogout}
